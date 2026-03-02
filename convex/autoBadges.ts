@@ -3,6 +3,16 @@ import { v } from "convex/values"
 import { requireAuth } from "./lib/auth"
 import { internal } from "./_generated/api"
 
+const MILESTONE_BADGES = [
+    { trigger: "submissions", threshold: 5, name: "Active Builder", color: "#10B981", level: 2 },
+    { trigger: "submissions", threshold: 10, name: "Prolific Builder", color: "#2563EB", level: 3 },
+    { trigger: "submissions", threshold: 25, name: "Master Builder", color: "hsl(258 90% 66%)", level: 4 },
+    { trigger: "points", threshold: 100, name: "Century Club", color: "#F59E0B", level: 2 },
+    { trigger: "points", threshold: 500, name: "Elite Builder", color: "#EF4444", level: 4 },
+    { trigger: "awards", threshold: 3, name: "Award Collector", color: "#2563EB", level: 2 },
+    { trigger: "awards", threshold: 10, name: "Award Master", color: "hsl(258 90% 66%)", level: 4 },
+] as const;
+
 const TOP_PERCENT_THRESHOLD = 0.1     // Top 10%
 const TOP_PERCENT_BADGE_NAME = "Top 10%"
 const TOP_PERCENT_BADGE_COLOR = "hsl(258 90% 66%)"  // achievement purple
@@ -150,5 +160,62 @@ export const awardRankBadge = internalMutation({
             read: false,
             relatedId: args.submissionId,
         })
+    },
+})
+
+export const checkMilestones = internalMutation({
+    args: { userId: v.id("users") },
+    handler: async (ctx, args) => {
+        const user = await ctx.db.get(args.userId);
+        if (!user) return;
+
+        const submissions = await ctx.db
+            .query("submissions")
+            .withIndex("by_user", (q) => q.eq("userId", args.userId))
+            .collect();
+
+        const awardedCount = submissions.filter((s) => s.status === "awarded").length;
+        const existingBadges = await ctx.db
+            .query("badges")
+            .withIndex("by_user", (q) => q.eq("userId", args.userId))
+            .collect();
+        const existingBadgeNames = new Set(existingBadges.map((b) => b.name));
+
+        for (const milestone of MILESTONE_BADGES) {
+            if (existingBadgeNames.has(milestone.name)) continue;
+
+            let count = 0;
+            if (milestone.trigger === "submissions") count = submissions.length;
+            else if (milestone.trigger === "points") count = user.points;
+            else if (milestone.trigger === "awards") count = awardedCount;
+
+            if (count >= milestone.threshold) {
+                const latestSubmission = submissions.sort(
+                    (a, b) => b._creationTime - a._creationTime,
+                )[0];
+                if (!latestSubmission) continue;
+
+                await ctx.db.insert("badges", {
+                    userId: args.userId,
+                    submissionId: latestSubmission._id,
+                    challengeId: latestSubmission.challengeId,
+                    name: milestone.name,
+                    color: milestone.color,
+                    level: milestone.level,
+                    awardedAt: Date.now(),
+                });
+
+                await ctx.db.patch(args.userId, {
+                    points: user.points + milestone.level * 10,
+                });
+
+                await ctx.db.insert("notifications", {
+                    userId: args.userId,
+                    type: "award",
+                    content: `Achievement unlocked: ${milestone.name}!`,
+                    read: false,
+                });
+            }
+        }
     },
 })

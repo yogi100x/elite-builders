@@ -75,6 +75,11 @@ export const create = mutation({
             challengeId: args.challengeId,
         });
 
+        // Schedule milestone badge check (non-blocking)
+        await ctx.scheduler.runAfter(0, internal.autoBadges.checkMilestones, {
+            userId: caller._id,
+        });
+
         return submissionId;
     },
 });
@@ -205,6 +210,11 @@ export const award = mutation({
                 points: user.points + args.score,
             });
         }
+
+        // Schedule milestone badge check (non-blocking)
+        await ctx.scheduler.runAfter(0, internal.autoBadges.checkMilestones, {
+            userId: submission.userId,
+        });
 
         await ctx.db.insert("notifications", {
             userId: submission.userId,
