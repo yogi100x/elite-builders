@@ -12,10 +12,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Github, CheckCircle, ArrowRight, User } from "lucide-react"
+import { Github, CheckCircle, ArrowRight, User, Upload, SkipForward } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { SignInButton } from "@clerk/nextjs"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 const profileSchema = z.object({
     bio: z.string().max(300).optional(),
@@ -23,11 +24,17 @@ const profileSchema = z.object({
     skills: z.string().optional(),
 })
 
+function setOnboardedCookie() {
+    document.cookie = "eb_onboarded=true; path=/; max-age=31536000" // 1 year expiry
+}
+
 export default function OnboardingPage() {
     const { user, isLoaded } = useUser()
+    const router = useRouter()
     const challenges = useQuery(api.challenges.listTopSix)
     const updateProfile = useMutation(api.users.updateProfile)
     const generateUploadUrl = useMutation(api.submissions.generateUploadUrl)
+    const [resumeUploaded, setResumeUploaded] = useState(false)
 
     const hasGitHub = user?.externalAccounts?.some((a) => a.provider === "github")
 
@@ -36,10 +43,10 @@ export default function OnboardingPage() {
         defaultValues: { bio: "", portfolioUrl: "", skills: "" },
     })
 
-    // Set the onboarded cookie when GitHub is connected, but don't auto-redirect
+    // Set the onboarded cookie when GitHub is connected
     useEffect(() => {
         if (isLoaded && hasGitHub) {
-            document.cookie = "eb_onboarded=true; path=/; max-age=31536000" // 1 year expiry
+            setOnboardedCookie()
         }
     }, [isLoaded, hasGitHub])
 
@@ -61,7 +68,7 @@ export default function OnboardingPage() {
             <div>
                 <h1 className="font-display text-3xl font-bold">Welcome to EliteBuilders</h1>
                 <p className="text-muted-foreground mt-1">
-                    Complete your profile to start submitting to challenges.
+                    Connect GitHub or upload your resume to get personalized challenge recommendations and help sponsors discover you.
                 </p>
             </div>
 
@@ -107,7 +114,7 @@ export default function OnboardingPage() {
                         <User size={20} className="text-muted-foreground" />
                         <CardTitle className="text-base">Complete Your Profile</CardTitle>
                     </div>
-                    <CardDescription>Optional — helps sponsors find you.</CardDescription>
+                    <CardDescription>Fill in your profile or upload a resume so sponsors can find you.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...profileForm}>
@@ -120,7 +127,9 @@ export default function OnboardingPage() {
                                         ? data.skills.split(",").map((s) => s.trim()).filter(Boolean)
                                         : undefined,
                                 });
-                                toast.success("Profile updated!");
+                                setOnboardedCookie()
+                                toast.success("Profile saved! Redirecting to dashboard...")
+                                router.push("/dashboard")
                             })}
                             className="space-y-4"
                         >
@@ -174,7 +183,11 @@ export default function OnboardingPage() {
 
                             {/* Resume Upload */}
                             <div className="space-y-2">
-                                <Label>Resume (Optional)</Label>
+                                <Label className="flex items-center gap-2">
+                                    <Upload size={14} />
+                                    Resume
+                                    {resumeUploaded && <CheckCircle size={14} className="text-brand-success" />}
+                                </Label>
                                 <Input
                                     type="file"
                                     accept=".pdf"
@@ -187,6 +200,8 @@ export default function OnboardingPage() {
                                             headers: { "Content-Type": file.type },
                                             body: file,
                                         });
+                                        setResumeUploaded(true)
+                                        setOnboardedCookie()
                                         toast.success("Resume uploaded!");
                                     }}
                                 />
@@ -223,9 +238,28 @@ export default function OnboardingPage() {
                 </div>
             )}
 
-            <Button asChild className="w-full">
-                <Link href="/challenges">Browse All Challenges <ArrowRight size={16} className="ml-2" /></Link>
-            </Button>
+            <div className="flex flex-col gap-3">
+                <Button
+                    className="w-full"
+                    onClick={() => {
+                        setOnboardedCookie()
+                        router.push("/dashboard")
+                    }}
+                >
+                    Continue to Dashboard <ArrowRight size={16} className="ml-2" />
+                </Button>
+                <Button
+                    variant="ghost"
+                    className="w-full text-muted-foreground"
+                    onClick={() => {
+                        setOnboardedCookie()
+                        router.push("/challenges")
+                    }}
+                >
+                    <SkipForward size={14} className="mr-2" />
+                    Skip for now — I'll set up later
+                </Button>
+            </div>
         </div>
     )
 }

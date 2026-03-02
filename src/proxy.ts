@@ -14,10 +14,15 @@ export default clerkMiddleware(async (auth, req) => {
         await auth.protect();
     }
 
-    // Redirect new signups to onboarding
+    // Redirect authenticated users who haven't completed onboarding
     const { userId } = await auth();
-    const isNewUser = !req.cookies.get("eb_onboarded");
-    if (userId && !isPublicRoute(req) && req.nextUrl.pathname !== "/onboarding" && isNewUser) {
+    if (!userId) return;
+
+    const isOnboarding = req.nextUrl.pathname === "/onboarding";
+    const isApiRoute = req.nextUrl.pathname.startsWith("/api/");
+    const hasOnboarded = req.cookies.get("eb_onboarded");
+
+    if (!hasOnboarded && !isOnboarding && !isApiRoute) {
         return Response.redirect(new URL("/onboarding", req.url));
     }
 });
