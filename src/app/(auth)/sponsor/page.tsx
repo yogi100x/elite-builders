@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation"
 import { DIFFICULTY_LABELS } from "@/lib/constants"
 import { formatDeadline } from "@/lib/utils"
 import { SponsorChart } from "@/components/sponsor-chart"
+import { Github, ExternalLink } from "lucide-react"
 
 export default function SponsorPage() {
     const { user } = useUser()
@@ -53,6 +54,25 @@ export default function SponsorPage() {
                 </div>
                 <Button onClick={() => router.push("/sponsor/new")}>+ Create Challenge</Button>
             </div>
+
+            <a
+                href="https://github.com/yogi100x/elitebuilders-challenge-template"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 hover:bg-blue-100 transition-colors dark:border-blue-900 dark:bg-blue-950/40 dark:hover:bg-blue-950/60"
+            >
+                <Github className="h-8 w-8 text-blue-600 dark:text-blue-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">
+                        Setting up standardized testing? Start with our template
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                        Clone the example repo to see the exact folder structure, visible tests, hidden tests, and reference solution.
+                        Customize it for your challenge, then link it when creating a new challenge.
+                    </p>
+                </div>
+                <ExternalLink className="h-4 w-4 text-blue-400 dark:text-blue-500 shrink-0" />
+            </a>
 
             {drafts.length > 0 && (
                 <Card>

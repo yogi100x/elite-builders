@@ -25,7 +25,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Download, ExternalLink, MessageSquare, Loader2 } from "lucide-react"
+import { Download, ExternalLink, MessageSquare, Loader2, FlaskConical, ChevronDown, ChevronUp } from "lucide-react"
 import { STATUS_LABELS } from "@/lib/constants"
 import { toast } from "sonner"
 import type { Doc } from "@/convex/_generated/dataModel"
@@ -110,6 +110,7 @@ export default function SponsorSubmissionsPage({ params }: { params: Promise<{ i
     const { id } = use(params)
     const [sortBy, setSortBy] = useState<"score" | "date">("score")
     const [filterStatus, setFilterStatus] = useState<string>("all")
+    const [expandedTests, setExpandedTests] = useState<Set<string>>(new Set())
     const submissions = useQuery(api.submissions.listByChallenge, {
         challengeId: id as Id<"challenges">,
     })
@@ -179,61 +180,107 @@ export default function SponsorSubmissionsPage({ params }: { params: Promise<{ i
             <div className="border rounded-card divide-y">
                 {filtered.map((sub, index) => {
                     const displayScore = sub.score ?? sub.provisionalScore
+                    const testsExpanded = expandedTests.has(sub._id)
                     return (
-                        <div key={sub._id} className="flex items-center gap-4 p-4">
-                            <span className="font-mono font-bold w-8 text-center text-muted-foreground">
-                                #{index + 1}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-sm font-semibold">{sub.candidateName}</span>
-                                    {sub.candidateGithub && (
-                                        <span className="text-xs text-muted-foreground">@{sub.candidateGithub}</span>
-                                    )}
-                                </div>
-                                {sub.candidateSkills.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mb-2">
-                                        {sub.candidateSkills.slice(0, 5).map((skill: string) => (
-                                            <Badge key={skill} variant="secondary" className="text-xs">{skill}</Badge>
-                                        ))}
-                                    </div>
-                                )}
-                                <p className="font-mono text-xs text-muted-foreground truncate">{sub._id}</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                    {(sub.githubRepoUrl ?? sub.repoUrl) && (
-                                        <a
-                                            href={sub.githubRepoUrl ?? sub.repoUrl ?? "#"}
-                                            target="_blank"
-                                            className="text-xs text-brand-primary flex items-center gap-1 hover:underline"
-                                        >
-                                            {sub.githubOwner
-                                                ? `${sub.githubOwner}/${sub.githubRepo}`
-                                                : "View Repo"}
-                                            <ExternalLink size={10} />
-                                        </a>
-                                    )}
-                                    {sub.videoUrl && (
-                                        <a href={sub.videoUrl} target="_blank" className="text-xs text-muted-foreground hover:underline">
-                                            Demo Video →
-                                        </a>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <ExpressInterestButton submission={sub} />
-                                <Badge variant={sub.status === "awarded" ? "default" : "secondary"}>
-                                    {STATUS_LABELS[sub.status]}
-                                </Badge>
-                                {displayScore !== undefined && (
-                                    <span className="font-mono font-bold text-sm">
-                                        {displayScore}
-                                        <span className="text-muted-foreground font-normal">/100</span>
-                                        {sub.score === undefined && sub.provisionalScore !== undefined && (
-                                            <span className="text-[10px] text-muted-foreground ml-1">(AI)</span>
+                        <div key={sub._id} className="p-4 space-y-3">
+                            <div className="flex items-center gap-4">
+                                <span className="font-mono font-bold w-8 text-center text-muted-foreground">
+                                    #{index + 1}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-sm font-semibold">{sub.candidateName}</span>
+                                        {sub.candidateGithub && (
+                                            <span className="text-xs text-muted-foreground">@{sub.candidateGithub}</span>
                                         )}
-                                    </span>
-                                )}
+                                    </div>
+                                    {sub.candidateSkills.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mb-2">
+                                            {sub.candidateSkills.slice(0, 5).map((skill: string) => (
+                                                <Badge key={skill} variant="secondary" className="text-xs">{skill}</Badge>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <p className="font-mono text-xs text-muted-foreground truncate">{sub._id}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        {(sub.githubRepoUrl ?? sub.repoUrl) && (
+                                            <a
+                                                href={sub.githubRepoUrl ?? sub.repoUrl ?? "#"}
+                                                target="_blank"
+                                                className="text-xs text-brand-primary flex items-center gap-1 hover:underline"
+                                            >
+                                                {sub.githubOwner
+                                                    ? `${sub.githubOwner}/${sub.githubRepo}`
+                                                    : "View Repo"}
+                                                <ExternalLink size={10} />
+                                            </a>
+                                        )}
+                                        {sub.videoUrl && (
+                                            <a href={sub.videoUrl} target="_blank" className="text-xs text-muted-foreground hover:underline">
+                                                Demo Video →
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <ExpressInterestButton submission={sub} />
+                                    <Badge variant={sub.status === "awarded" ? "default" : "secondary"}>
+                                        {STATUS_LABELS[sub.status]}
+                                    </Badge>
+                                    {displayScore !== undefined && (
+                                        <span className="font-mono font-bold text-sm">
+                                            {displayScore}
+                                            <span className="text-muted-foreground font-normal">/100</span>
+                                            {sub.score === undefined && sub.provisionalScore !== undefined && (
+                                                <span className="text-[10px] text-muted-foreground ml-1">(AI)</span>
+                                            )}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
+
+                            {/* Test Results */}
+                            {sub.testResults && (
+                                <div className="ml-12 rounded-md border bg-muted/30 p-3 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <FlaskConical size={14} className="text-muted-foreground" />
+                                            <span className="text-sm font-medium">Test Results</span>
+                                            <Badge variant={sub.testResults.failed === 0 && sub.testResults.total > 0 ? "default" : "destructive"}>
+                                                {sub.testResults.passed}/{sub.testResults.total} passed
+                                            </Badge>
+                                            {sub.testResults.failed > 0 && (
+                                                <span className="text-xs text-destructive">
+                                                    {sub.testResults.failed} failed
+                                                </span>
+                                            )}
+                                        </div>
+                                        {sub.testResults.details && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-7 text-xs gap-1"
+                                                onClick={() => {
+                                                    setExpandedTests((prev) => {
+                                                        const next = new Set(prev)
+                                                        if (next.has(sub._id)) next.delete(sub._id)
+                                                        else next.add(sub._id)
+                                                        return next
+                                                    })
+                                                }}
+                                            >
+                                                {testsExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                                {testsExpanded ? "Hide" : "Show"} Output
+                                            </Button>
+                                        )}
+                                    </div>
+                                    {testsExpanded && sub.testResults.details && (
+                                        <pre className="bg-background rounded border p-3 text-xs font-mono overflow-x-auto max-h-80 overflow-y-auto whitespace-pre-wrap">
+                                            {sub.testResults.details}
+                                        </pre>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )
                 })}

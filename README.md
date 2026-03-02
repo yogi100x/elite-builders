@@ -19,10 +19,12 @@ EliteBuilders is a developer competition and hiring platform where candidates so
 - **Real-time Updates** — see scoring status, notifications, and rankings update live
 
 ### For Sponsors (Companies)
+- **Apply to Become a Sponsor** — submit an application reviewed by platform admins
 - **Create Challenges** — post coding challenges with custom rubrics and prizes
+- **Standardized Testing** — link a GitHub template repo + upload hidden test files for automated grading
 - **Draft & Publish Workflow** — save drafts, iterate, then publish when ready
 - **Assign Judges** — select from available judges at challenge creation
-- **View Submissions** — see candidate profiles, AI scores, and test results
+- **View Submissions** — see candidate profiles, AI scores, and detailed test results (pass/fail per test, output logs)
 - **Express Interest** — reach out to top candidates directly
 - **Analytics** — track challenge engagement and submission quality
 
@@ -32,7 +34,8 @@ EliteBuilders is a developer competition and hiring platform where candidates so
 - **Test Results** — see automated test execution results alongside code
 
 ### For Admins
-- **Invite System** — generate secure invite tokens for sponsors and judges
+- **Sponsor Application Review** — approve or reject sponsor applications with email notifications
+- **Invite System** — generate secure invite tokens for sponsors and judges (auto-emails invite links)
 - **Platform Challenges** — create challenges as the EliteBuilders platform itself
 - **Role Management** — promote users to sponsor/judge/admin roles
 
@@ -47,7 +50,7 @@ EliteBuilders is a developer competition and hiring platform where candidates so
 | **Backend** | Convex | Reactive database, serverless functions, real-time subscriptions |
 | **Auth** | Clerk | Authentication, user management, webhook sync |
 | **AI** | Google Gemini | Automated scoring, profile analysis, challenge recommendations |
-| **Sandbox** | E2B | Automated test execution for code submissions |
+| **Sandbox** | E2B | Automated test execution with hidden test injection |
 | **UI** | shadcn/ui (New York) | Radix primitives + Tailwind CSS v4 |
 | **Email** | Resend | Transactional emails (awards, scoring, weekly digest) |
 | **Charts** | Recharts | Sponsor analytics and dashboards |
@@ -81,9 +84,11 @@ EliteBuilders is a developer competition and hiring platform where candidates so
 
 1. **Convex for real-time** — live leaderboards, instant submission status, reactive queries
 2. **AI scoring is provisional** — Gemini evaluates 5 rubric criteria; scores are provisional until a human judge reviews
-3. **Invite-only roles** — sponsors and judges join via admin-generated invite tokens
-4. **Route groups** — `(public)` pages get horizontal nav; `(auth)` pages get sidebar + topnav
-5. **React Compiler** — automatic memoization, no manual `useMemo`/`useCallback`
+3. **Hybrid testing** — visible tests in public template repos + hidden tests injected during sandbox execution
+4. **Sponsor applications** — candidates apply to become sponsors; admins approve/reject with email notifications
+5. **Invite-only judge roles** — judges join via admin-generated invite tokens (auto-emailed)
+6. **Route groups** — `(public)` pages get horizontal nav; `(auth)` pages get sidebar + topnav
+7. **React Compiler** — automatic memoization, no manual `useMemo`/`useCallback`
 
 ---
 
@@ -219,7 +224,12 @@ Candidate submits
 convex/submissions.create
     ↓
 Schedule: aiScoring.scoreSubmission (Gemini)
-    ├── Optionally: sandbox test execution (E2B)
+    ├── Analyzes README, file tree, commits, topics
+    ├── Produces provisional score + rubric feedback
+    ├── Schedule: sandbox.runTests (E2B)
+    │   ├── Clone repo, inject hidden tests
+    │   ├── Run npm test, parse results
+    │   └── Store pass/fail counts + verbose output
     ├── Send scoring email notification
     └── Schedule: badges.grantFirstBuild
     ↓
@@ -229,6 +239,16 @@ Judge reviews (award or reject)
     ↓
 Auto-badges: checkMilestones (Active Builder, etc.)
 ```
+
+### Standardized Testing
+
+Sponsors can set up automated test execution for their challenges using the **hybrid testing system**:
+
+1. **Create a template repo** — fork the [EliteBuilders Challenge Template](https://github.com/yogi100x/elitebuilders-challenge-template) on GitHub
+2. **Add visible tests** — basic functionality tests candidates can see and run locally
+3. **Write hidden tests** — edge cases and validation tests uploaded to EliteBuilders (not in the repo)
+4. **Link in challenge form** — paste template repo URL, upload hidden test files, set custom test command
+5. **Automated scoring** — sandbox clones candidate repo, injects hidden tests, runs test suite, reports results
 
 ---
 
@@ -253,8 +273,16 @@ Auto-badges: checkMilestones (Active Builder, etc.)
 ### Scoring Pipeline (`convex/aiScoring.ts`)
 - Evaluates submissions against 5 rubric criteria (or custom sponsor rubric)
 - Default criteria: Technical Implementation (40pts), Problem Understanding (20pts), Innovation (20pts), Documentation (10pts), Completeness (10pts)
+- Enhanced context: passes file tree, recent commits, repo topics, and stars/forks to Gemini alongside README and description
 - Produces a provisional 0-100 score with per-criterion JSON feedback
 - Real-time status tracking: `pending` → `scoring` → `scored`/`failed`
+
+### Sandbox Test Execution (`convex/sandbox.ts`)
+- Runs candidate code in an isolated E2B sandbox with 2-minute timeout
+- Clones candidate repo, installs dependencies, injects sponsor's hidden tests into `__tests__/hidden/`
+- Parses test results via JSON output (with fallback regex parsing for non-JSON runners)
+- Captures verbose test output + stderr for full diagnostics
+- Results (pass/fail counts + detailed output) stored on the submission record and visible to sponsors/judges
 
 ### Challenge Recommendations (`convex/recommendations.ts`)
 - Analyzes candidate's GitHub repos via Gemini at onboarding
@@ -329,6 +357,38 @@ Subscribe to events: `user.created`, `user.updated`
 **Fonts:** Inter (body), Space Grotesk (headings), JetBrains Mono (code)
 
 **Dark mode:** Supported via `next-themes` with CSS variable swap.
+
+---
+
+## Recent Changes
+
+### Sponsor Applications & Admin Approval
+- Candidates now apply to become sponsors via `/become-sponsor` (org name, website, industry, description)
+- Admins review pending applications in the Invites page (tabbed: Applications + Invites)
+- Approve → auto-promotes role, creates sponsor profile, sends approval email + in-app notification
+- Reject → sends rejection email with reason + in-app notification
+
+### Invite Emails
+- Admin-created invites now auto-send email with the invite link (no more manual copy-paste)
+- Emails include role, organization name, and direct accept link
+
+### Enhanced AI Scoring
+- Gemini now receives expanded context: file tree structure, recent commits with messages, repo topics, stars/forks
+- README context increased from 2000 to 4000 characters
+- Added scoring guidance section in prompt for more consistent evaluations
+
+### Hybrid Standardized Testing
+- Sponsors can link a GitHub template repo with visible tests for candidates
+- Hidden test files uploaded to Convex storage and injected during sandbox scoring
+- Sandbox captures verbose test output, stderr, and parses JSON or regex-based results
+- Test results (pass/fail counts + detailed logs) visible to sponsors and judges
+- Candidates see only processing status and final judge-approved score
+- Challenge seed includes a fully configured "User API Design Challenge" with template and hidden tests
+
+### Template Repository
+- Published [elitebuilders-challenge-template](https://github.com/yogi100x/elitebuilders-challenge-template) as a GitHub template
+- Includes visible tests, hidden test examples, reference solution, and comprehensive sponsor guide
+- Sponsor dashboard links to the template with setup instructions
 
 ---
 

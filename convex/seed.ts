@@ -1,4 +1,4 @@
-import { action, internalMutation } from "./_generated/server";
+import { action, internalAction, internalMutation } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
@@ -49,6 +49,9 @@ export const seedAll = action({
             sponsorUserId,
             sponsor2UserId,
         });
+
+        // Upload hidden test files for the template challenge
+        await ctx.runAction(internal.seed.uploadHiddenTests, { challengeIds });
 
         // Create submissions and badges
         await ctx.runMutation(internal.seed.seedSubmissionsAndBadges, {
@@ -351,6 +354,62 @@ Acme Corp maintains a design system used by 12 product teams. Every time our des
 - Must work with Figma's new Variables feature (not just legacy styles)`,
                 sponsorId: sponsor2Id,
                 deadline: now + 60 * oneDay, // 2 months
+            },
+            {
+                title: "User API Design Challenge",
+                summary: "Build a type-safe, in-memory User API with full CRUD, input validation, and edge-case handling — verified by automated visible + hidden tests.",
+                difficulty: "beginner" as const,
+                tags: ["TypeScript", "API", "testing"],
+                prize: "$750 + Badge",
+                overview: `This is a standardized challenge with automated testing. You'll start from a template repository that has visible tests already written — your job is to implement the functions that make them pass.
+
+What makes this challenge unique is that there are also **hidden tests** that run during automated scoring. These test edge cases, input validation, and data integrity that you should anticipate from reading the visible tests and the function signatures.
+
+**What you get:**
+- A template repo with TypeScript, Jest, and a clear project structure
+- Stub functions with TODO comments explaining what to implement
+- Visible tests you can run locally to verify your solution
+- Detailed type definitions so you know exactly what's expected
+
+**What we're looking for:**
+- Clean, working implementation that passes all visible tests
+- Thoughtful handling of edge cases (duplicate emails, invalid inputs, etc.)
+- Good TypeScript usage — proper types, no \`any\` abuse
+- Defensive coding practices that anticipate hidden test scenarios`,
+                problemStatement: `Build a synchronous, in-memory User API. Fork the template repository and implement all stub functions in \`src/index.ts\`.
+
+Your implementation must:
+
+1. **createUser(data)** — Create a user with a unique generated ID. Throw if email already exists.
+2. **getUser(id)** — Return the user or \`null\` if not found.
+3. **updateUser(id, data)** — Update user properties. Throw if user doesn't exist or email conflicts.
+4. **deleteUser(id)** — Remove a user. Return \`true\` if deleted, \`false\` if not found.
+5. **listUsers(filter?)** — Return all users, optionally filtered by a predicate function.
+6. **resetStore()** — Clear all data (used between tests).
+
+**Rules:**
+- All data in memory (no databases, no files)
+- Email addresses must be unique — throw an Error on duplicates
+- All functions are synchronous
+- Do NOT modify the test files
+
+**Scoring:**
+- Visible tests (in the template): 13 tests covering basic CRUD operations
+- Hidden tests (run during scoring): 10 additional tests covering edge cases, validation, and data integrity
+- Your score depends on how many tests pass out of the total 23
+
+**Getting started:**
+1. Click "Use this template" on the template repo linked below
+2. Run \`npm install && npm test\` — all 13 visible tests will fail
+3. Implement the functions in \`src/index.ts\`
+4. Run \`npm test\` until all visible tests pass
+5. Submit your repo here`,
+                sponsorId: sponsor1Id,
+                deadline: now + 14 * oneDay,
+                templateRepoUrl: "https://github.com/yogi100x/elitebuilders-challenge-template",
+                templateRepoOwner: "yogi100x",
+                templateRepoName: "elitebuilders-challenge-template",
+                testRunCommand: "npm test",
             },
         ];
 
@@ -655,5 +714,62 @@ export const seedSubmissionsAndBadges = internalMutation({
 
         // --- Update candidate's points to total awarded score ---
         await ctx.db.patch(candidateId, { points: totalAwardedScore });
+    },
+});
+
+// --- Upload hidden test files from GitHub to Convex storage ---
+const HIDDEN_TEST_URL =
+    "https://raw.githubusercontent.com/yogi100x/elitebuilders-challenge-template/main/examples/hidden-tests/hidden_validation.test.ts";
+
+export const uploadHiddenTests = internalAction({
+    args: { challengeIds: v.array(v.id("challenges")) },
+    handler: async (ctx, { challengeIds }) => {
+        // The template challenge is the 7th (index 6)
+        const templateChallengeId = challengeIds[6];
+        if (!templateChallengeId) {
+            console.log("[seed] No template challenge found at index 6, skipping hidden test upload");
+            return;
+        }
+
+        // Check if already has hidden tests
+        const challenge = await ctx.runQuery(internal.challenges.getByIdInternal, {
+            id: templateChallengeId,
+        });
+        if (challenge?.hiddenTestFileIds && challenge.hiddenTestFileIds.length > 0) {
+            console.log("[seed] Template challenge already has hidden tests, skipping");
+            return;
+        }
+
+        // Fetch the hidden test file from GitHub
+        const response = await fetch(HIDDEN_TEST_URL);
+        if (!response.ok) {
+            console.error(`[seed] Failed to fetch hidden test file: ${response.status}`);
+            return;
+        }
+
+        const content = await response.text();
+        const blob = new Blob([content], { type: "application/typescript" });
+
+        // Store in Convex storage
+        const storageId = await ctx.storage.store(blob);
+        console.log(`[seed] Uploaded hidden test file to storage: ${storageId}`);
+
+        // Patch the challenge with the storage ID
+        await ctx.runMutation(internal.seed.patchHiddenTestFiles, {
+            challengeId: templateChallengeId,
+            hiddenTestFileIds: [storageId],
+        });
+
+        console.log("[seed] Template challenge now has hidden tests configured");
+    },
+});
+
+export const patchHiddenTestFiles = internalMutation({
+    args: {
+        challengeId: v.id("challenges"),
+        hiddenTestFileIds: v.array(v.id("_storage")),
+    },
+    handler: async (ctx, { challengeId, hiddenTestFileIds }) => {
+        await ctx.db.patch(challengeId, { hiddenTestFileIds });
     },
 });

@@ -23,7 +23,18 @@ export const runTests = internalAction({
             const sandbox = await Sandbox.create({ apiKey })
 
             // 1. Clone candidate repo
-            await sandbox.commands.run(`git clone ${args.repoUrl} /app`)
+            const cloneResult = await sandbox.commands.run(`git clone ${args.repoUrl} /app`)
+            if (cloneResult.exitCode !== 0) {
+                await sandbox.kill()
+                await ctx.runMutation(internal.submissions.setTestResults, {
+                    submissionId: args.submissionId,
+                    testResults: {
+                        passed: 0, failed: 0, total: 0,
+                        details: `Failed to clone repository: ${cloneResult.stderr.slice(0, 500)}`,
+                    },
+                })
+                return
+            }
 
             // 2. Look up challenge config (hidden tests + custom test command)
             let testCommand = "npm test"
@@ -41,7 +52,7 @@ export const runTests = internalAction({
                             })
                             if (fileUrl) {
                                 await sandbox.commands.run(
-                                    `curl -sL "${fileUrl}" -o /app/__tests__/hidden/hidden_test_${i}.test.js`
+                                    `curl -sL "${fileUrl}" -o /app/__tests__/hidden/hidden_test_${i}.test.ts`
                                 )
                             }
                         }
@@ -51,17 +62,34 @@ export const runTests = internalAction({
             }
 
             // 3. Install dependencies
-            await sandbox.commands.run("cd /app && npm install", { timeoutMs: 60000 })
+            const installResult = await sandbox.commands.run("cd /app && npm install", { timeoutMs: 60000 })
+            if (installResult.exitCode !== 0) {
+                await sandbox.kill()
+                await ctx.runMutation(internal.submissions.setTestResults, {
+                    submissionId: args.submissionId,
+                    testResults: {
+                        passed: 0, failed: 0, total: 0,
+                        details: `npm install failed: ${installResult.stderr.slice(0, 500)}`,
+                    },
+                })
+                return
+            }
 
-            // 5. Run tests
+            // 4. Run tests with --verbose for detailed output, and --json for structured parsing
             const result = await sandbox.commands.run(
-                `cd /app && ${testCommand} -- --json 2>/dev/null || true`,
+                `cd /app && ${testCommand} -- --verbose --json 2>&1 || true`,
+                { timeoutMs: 120000 },
+            )
+
+            // Also capture verbose output (without --json) for human-readable details
+            const verboseResult = await sandbox.commands.run(
+                `cd /app && ${testCommand} -- --verbose 2>&1 || true`,
                 { timeoutMs: 120000 },
             )
 
             await sandbox.kill()
 
-            // 6. Parse test results
+            // 5. Parse test results
             let testResults = { passed: 0, failed: 0, total: 0, details: "" }
             try {
                 const jsonOutput = JSON.parse(result.stdout)
@@ -69,13 +97,27 @@ export const runTests = internalAction({
                     passed: jsonOutput.numPassedTests ?? 0,
                     failed: jsonOutput.numFailedTests ?? 0,
                     total: jsonOutput.numTotalTests ?? 0,
-                    details: result.stdout.slice(0, 2000),
+                    details: verboseResult.stdout.slice(0, 4000),
                 }
             } catch {
-                testResults.details = result.stdout.slice(0, 2000)
+                // JSON parsing failed — fall back to parsing verbose output
+                const stdout = verboseResult.stdout || result.stdout
+                const stderr = verboseResult.stderr || result.stderr
+
+                // Try to extract pass/fail counts from verbose output
+                const passMatch = stdout.match(/Tests:\s+(\d+)\s+passed/)
+                const failMatch = stdout.match(/Tests:\s+(\d+)\s+failed/)
+                const totalMatch = stdout.match(/Tests:\s+(\d+)\s+total/)
+                if (passMatch) testResults.passed = parseInt(passMatch[1])
+                if (failMatch) testResults.failed = parseInt(failMatch[1])
+                if (totalMatch) testResults.total = parseInt(totalMatch[1])
+
+                // Combine stdout + stderr for full context
+                const combined = [stdout, stderr].filter(Boolean).join("\n---STDERR---\n")
+                testResults.details = combined.slice(0, 4000)
             }
 
-            // 7. Store results
+            // 6. Store results
             await ctx.runMutation(internal.submissions.setTestResults, {
                 submissionId: args.submissionId,
                 testResults,
@@ -84,6 +126,14 @@ export const runTests = internalAction({
             console.log(`[sandbox] Test results for ${args.submissionId}: ${testResults.passed}/${testResults.total} passed`)
         } catch (error) {
             console.error("[sandbox] Sandbox execution failed:", error)
+            // Store the error so sponsors can see what happened
+            await ctx.runMutation(internal.submissions.setTestResults, {
+                submissionId: args.submissionId,
+                testResults: {
+                    passed: 0, failed: 0, total: 0,
+                    details: `Sandbox execution failed: ${String(error).slice(0, 500)}`,
+                },
+            })
         }
     },
 })
