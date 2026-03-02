@@ -6,14 +6,24 @@ import Link from "next/link"
 import { SignInButton } from "@clerk/nextjs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Lock } from "lucide-react"
+import { Download, Lock } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
 import { DIFFICULTY_COLORS, DIFFICULTY_LABELS } from "@/lib/constants"
 import { formatDeadline } from "@/lib/utils"
+import { ChallengeLeaderboard } from "@/components/challenge-leaderboard"
 
 interface Props {
     preloaded: Preloaded<typeof api.challenges.getById>
     isAuthenticated: boolean
 }
+
+const DEFAULT_RUBRIC = [
+    { name: "Technical Implementation", maxScore: 40, description: "Quality of code, architecture, use of AI/ML techniques" },
+    { name: "Problem Understanding", maxScore: 20, description: "How well the submission addresses the stated problem" },
+    { name: "Innovation", maxScore: 20, description: "Creative use of AI, novel approach, differentiated solution" },
+    { name: "Documentation & Clarity", maxScore: 10, description: "README quality, pitch clarity, demo explanation" },
+    { name: "Completeness", maxScore: 10, description: "End-to-end functionality, working demo" },
+]
 
 export function ChallengeDetailView({ preloaded, isAuthenticated }: Props) {
     const challenge = usePreloadedQuery(preloaded)
@@ -59,6 +69,36 @@ export function ChallengeDetailView({ preloaded, isAuthenticated }: Props) {
                 <p className="text-muted-foreground whitespace-pre-line">{challenge.overview}</p>
             </section>
 
+            {/* Data Pack download link */}
+            {challenge.dataPackUrl && (
+                <section>
+                    <Button asChild variant="outline">
+                        <a href={challenge.dataPackUrl} target="_blank" rel="noopener noreferrer">
+                            <Download className="h-4 w-4 mr-2" />
+                            Download Data Pack
+                        </a>
+                    </Button>
+                </section>
+            )}
+
+            {/* Evaluation Criteria */}
+            <section>
+                <h2 className="font-display text-xl font-semibold mb-3">Evaluation Criteria</h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                    {(challenge.rubricCriteria ?? DEFAULT_RUBRIC).map((criterion) => (
+                        <Card key={criterion.name}>
+                            <CardContent className="pt-4">
+                                <div className="flex items-baseline justify-between mb-1">
+                                    <h3 className="font-semibold text-sm">{criterion.name}</h3>
+                                    <span className="text-xs font-mono text-muted-foreground">/{criterion.maxScore}</span>
+                                </div>
+                                <p className="text-sm text-muted-foreground">{criterion.description}</p>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </section>
+
             {/* Problem statement — auth-walled */}
             {isAuthenticated ? (
                 <section>
@@ -82,6 +122,9 @@ export function ChallengeDetailView({ preloaded, isAuthenticated }: Props) {
                     </SignInButton>
                 </div>
             )}
+
+            {/* Per-challenge leaderboard */}
+            <ChallengeLeaderboard challengeId={challenge._id} />
         </div>
     )
 }
