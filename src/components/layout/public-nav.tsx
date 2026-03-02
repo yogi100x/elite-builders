@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 const NAV_LINKS = [
     { href: "/challenges", label: "Challenges" },
     { href: "/leaderboard", label: "Leaderboard" },
+    { href: "/become-sponsor", label: "For Sponsors" },
 ]
 
 export function PublicNav() {

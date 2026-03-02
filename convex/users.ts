@@ -1,5 +1,5 @@
 import { mutation, query, internalQuery } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { requireAuth } from "./lib/auth";
 
 // Called by Clerk webhook — unauthenticated (uses internal mutation pattern)
@@ -97,6 +97,26 @@ export const getByIdInternal = internalQuery({
 export const getById = internalQuery({
     args: { userId: v.id("users") },
     handler: async (ctx, { userId }) => ctx.db.get(userId),
+});
+
+export const becomeSponsor = mutation({
+    args: {
+        orgName: v.string(),
+        logoUrl: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const caller = await requireAuth(ctx);
+        if (caller.role !== "candidate") {
+            throw new ConvexError(`Cannot become a sponsor — your current role is "${caller.role}"`);
+        }
+        await ctx.db.patch(caller._id, { role: "sponsor" });
+        const sponsorId = await ctx.db.insert("sponsors", {
+            userId: caller._id,
+            orgName: args.orgName,
+            logoUrl: args.logoUrl,
+        });
+        return sponsorId;
+    },
 });
 
 import { internalMutation } from "./_generated/server";
