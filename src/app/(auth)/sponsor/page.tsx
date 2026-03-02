@@ -1,5 +1,5 @@
 "use client"
-import { useQuery, useAction } from "convex/react"
+import { useQuery, useAction, useMutation } from "convex/react"
 import { useUser } from "@clerk/nextjs"
 import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
@@ -19,7 +19,11 @@ export default function SponsorPage() {
     const me = useQuery(api.users.getMe)
     const challenges = useQuery(api.challenges.listBySponsor)
     const closeAndAward = useAction(api.autoBadges.closeChallengeAndAwardBadges)
+    const publishDraft = useMutation(api.challenges.publishDraft)
     const chartData = useQuery(api.submissions.weeklyCountsBySponsor)
+
+    const drafts = challenges?.filter((c) => c.status === "draft") ?? []
+    const published = challenges?.filter((c) => c.status !== "draft") ?? []
 
     if (role !== "sponsor" && role !== "admin") {
         return (
@@ -45,12 +49,46 @@ export default function SponsorPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="font-display text-3xl font-bold">Sponsor Dashboard</h1>
-                    <p className="text-muted-foreground">{challenges.length} challenge(s) posted</p>
+                    <p className="text-muted-foreground">{published.length} challenge(s) posted</p>
                 </div>
                 <Button onClick={() => router.push("/sponsor/new")}>+ Create Challenge</Button>
             </div>
 
-            {challenges.length === 0 ? (
+            {drafts.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Drafts</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {drafts.map((draft) => (
+                            <div key={draft._id} className="flex items-center justify-between p-3 border rounded-card">
+                                <div>
+                                    <p className="font-medium">{draft.title}</p>
+                                    <p className="text-sm text-muted-foreground">{draft.summary || "No summary"}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={async () => {
+                                            try {
+                                                await publishDraft({ id: draft._id })
+                                                toast.success("Challenge published!")
+                                            } catch (err) {
+                                                toast.error(String(err))
+                                            }
+                                        }}
+                                    >
+                                        Publish
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+            )}
+
+            {published.length === 0 ? (
                 <Card>
                     <CardContent className="text-center py-12 space-y-3">
                         <p className="text-muted-foreground">No challenges yet.</p>
@@ -66,7 +104,7 @@ export default function SponsorPage() {
                         </CardContent>
                     </Card>
 
-                    {challenges.map((challenge) => (
+                    {published.map((challenge) => (
                         <Card key={challenge._id}>
                             <CardHeader>
                                 <div className="flex items-center justify-between">

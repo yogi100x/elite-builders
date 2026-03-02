@@ -15,9 +15,9 @@ export const listPublic = query({
                 .collect()
             : await ctx.db.query("challenges").collect();
 
-        return args.difficulty
-            ? challenges.filter((c) => c.difficulty === args.difficulty)
-            : challenges;
+        return challenges
+            .filter((c) => c.status !== "draft")
+            .filter((c) => !args.difficulty || c.difficulty === args.difficulty);
     },
 });
 
@@ -194,5 +194,69 @@ export const listJudges = query({
         await requireAuth(ctx, "sponsor");
         const allUsers = await ctx.db.query("users").collect();
         return allUsers.filter((u) => u.role === "judge" || u.role === "admin");
+    },
+});
+
+export const saveDraft = mutation({
+    args: {
+        id: v.optional(v.id("challenges")),
+        title: v.string(),
+        summary: v.optional(v.string()),
+        overview: v.optional(v.string()),
+        problemStatement: v.optional(v.string()),
+        tags: v.optional(v.array(v.string())),
+        difficulty: v.optional(
+            v.union(
+                v.literal("beginner"),
+                v.literal("intermediate"),
+                v.literal("advanced"),
+                v.literal("expert"),
+            ),
+        ),
+        prize: v.optional(v.string()),
+        deadline: v.optional(v.number()),
+    },
+    handler: async (ctx, args) => {
+        const caller = await requireAuth(ctx, "sponsor");
+        const sponsor = await ctx.db
+            .query("sponsors")
+            .withIndex("by_user", (q) => q.eq("userId", caller._id))
+            .unique();
+        if (!sponsor) throw new ConvexError("Sponsor not found");
+
+        if (args.id) {
+            const existing = await ctx.db.get(args.id);
+            if (!existing || existing.status !== "draft") {
+                throw new ConvexError("Can only update draft challenges");
+            }
+            const { id, ...updates } = args;
+            await ctx.db.patch(id, updates);
+            return id;
+        }
+
+        return await ctx.db.insert("challenges", {
+            sponsorId: sponsor._id,
+            title: args.title,
+            summary: args.summary ?? "",
+            overview: args.overview ?? "",
+            problemStatement: args.problemStatement ?? "",
+            tags: args.tags ?? [],
+            difficulty: args.difficulty ?? "intermediate",
+            status: "draft",
+            prize: args.prize ?? "",
+            deadline: args.deadline ?? Date.now() + 30 * 24 * 60 * 60 * 1000,
+        });
+    },
+});
+
+export const publishDraft = mutation({
+    args: { id: v.id("challenges") },
+    handler: async (ctx, args) => {
+        await requireAuth(ctx, "sponsor");
+        const challenge = await ctx.db.get(args.id);
+        if (!challenge || challenge.status !== "draft") {
+            throw new ConvexError("Challenge not found or not a draft");
+        }
+        await ctx.db.patch(args.id, { status: "open" });
     },
 });
