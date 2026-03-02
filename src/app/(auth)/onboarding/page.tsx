@@ -1,6 +1,6 @@
 "use client"
 import { useUser } from "@clerk/nextjs"
-import { useQuery, useMutation } from "convex/react"
+import { useQuery, useMutation, useAction } from "convex/react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -42,6 +42,17 @@ export default function OnboardingPage() {
             document.cookie = "eb_onboarded=true; path=/; max-age=31536000" // 1 year expiry
         }
     }, [isLoaded, hasGitHub])
+
+    const triggerAnalysis = useAction(api.users.triggerProfileAnalysis)
+
+    // Trigger GitHub profile analysis when GitHub is connected
+    useEffect(() => {
+        if (isLoaded && hasGitHub) {
+            triggerAnalysis().catch(() => {
+                // Non-critical — don't show error to user
+            })
+        }
+    }, [isLoaded, hasGitHub]) // eslint-disable-line react-hooks/exhaustive-deps
 
     if (!isLoaded) return null
 

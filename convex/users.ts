@@ -1,6 +1,11 @@
-import { mutation, query, internalQuery, internalMutation } from "./_generated/server";
+import { mutation, query, action, internalQuery, internalMutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireAuth } from "./lib/auth";
+import type { Doc } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
+
+// Export User type for use in other modules
+export type User = Doc<"users">;
 
 // Called by Clerk webhook — unauthenticated (uses internal mutation pattern)
 export const upsertFromClerk = mutation({
@@ -93,6 +98,16 @@ export const getByIdInternal = internalQuery({
             .unique();
     },
 });
+
+export const getByClerkId = internalQuery({
+    args: { clerkId: v.string() },
+    handler: async (ctx, { clerkId }) => {
+        return ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+            .unique()
+    },
+})
 
 export const getById = internalQuery({
     args: { userId: v.id("users") },
@@ -222,3 +237,21 @@ export const makeAdmin = internalMutation({
         return `Promoted ${args.email} to admin`;
     }
 });
+
+export const triggerProfileAnalysis = action({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity()
+        if (!identity) throw new ConvexError("Not authenticated")
+
+        const user: any = await ctx.runQuery(internal.users.getByClerkId, {
+            clerkId: identity.subject,
+        })
+        if (!user) throw new ConvexError("User not found")
+
+        // Schedule analysis in background — don't block the user
+        await ctx.scheduler.runAfter(0, internal.github.analyzeUserProfile, {
+            userId: user._id,
+        })
+    },
+})
