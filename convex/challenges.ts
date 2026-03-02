@@ -1,5 +1,5 @@
 import { mutation, query, internalQuery, internalMutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { requireAuth } from "./lib/auth";
 
 export const listPublic = query({
@@ -149,5 +149,50 @@ export const listBySponsor = query({
             .query("challenges")
             .withIndex("by_sponsor", (q) => q.eq("sponsorId", sponsor._id))
             .collect();
+    },
+});
+
+export const assignJudge = mutation({
+    args: {
+        challengeId: v.id("challenges"),
+        judgeUserId: v.id("users"),
+    },
+    handler: async (ctx, args) => {
+        await requireAuth(ctx, "sponsor");
+        const challenge = await ctx.db.get(args.challengeId);
+        if (!challenge) throw new ConvexError("Challenge not found");
+
+        const current = challenge.assignedJudges ?? [];
+        if (current.includes(args.judgeUserId)) return;
+
+        await ctx.db.patch(args.challengeId, {
+            assignedJudges: [...current, args.judgeUserId],
+        });
+    },
+});
+
+export const unassignJudge = mutation({
+    args: {
+        challengeId: v.id("challenges"),
+        judgeUserId: v.id("users"),
+    },
+    handler: async (ctx, args) => {
+        await requireAuth(ctx, "sponsor");
+        const challenge = await ctx.db.get(args.challengeId);
+        if (!challenge) throw new ConvexError("Challenge not found");
+
+        await ctx.db.patch(args.challengeId, {
+            assignedJudges: (challenge.assignedJudges ?? []).filter(
+                (id) => id !== args.judgeUserId,
+            ),
+        });
+    },
+});
+
+export const listJudges = query({
+    handler: async (ctx) => {
+        await requireAuth(ctx, "sponsor");
+        const allUsers = await ctx.db.query("users").collect();
+        return allUsers.filter((u) => u.role === "judge" || u.role === "admin");
     },
 });

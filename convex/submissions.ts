@@ -130,11 +130,30 @@ export const listByUser = query({
 export const listPendingReview = query({
     args: {},
     handler: async (ctx) => {
-        await requireAuth(ctx, "judge");
-        return ctx.db
+        const caller = await requireAuth(ctx, "judge");
+
+        const submissions = await ctx.db
             .query("submissions")
             .withIndex("by_status", (q) => q.eq("status", "in-review"))
             .collect();
+
+        // Filter to only challenges assigned to this judge (if any assignments exist)
+        const filtered = await Promise.all(
+            submissions.map(async (s) => {
+                const challenge = await ctx.db.get(s.challengeId);
+                if (!challenge) return null;
+                if (
+                    challenge.assignedJudges &&
+                    challenge.assignedJudges.length > 0 &&
+                    !challenge.assignedJudges.includes(caller._id)
+                ) {
+                    return null;
+                }
+                return { ...s, challenge };
+            }),
+        );
+
+        return filtered.filter(Boolean);
     },
 });
 
