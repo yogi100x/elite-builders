@@ -13,7 +13,7 @@ export const listByUser = query({
     },
 });
 
-// Global leaderboard: top users by points with optional time period filtering
+// Global leaderboard: top users by points with optional time period and season filtering
 export const leaderboard = query({
     args: {
         limit: v.optional(v.number()),
@@ -25,13 +25,56 @@ export const leaderboard = query({
                 v.literal("week"),
             ),
         ),
+        season: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const limit = args.limit ?? 50;
         const offset = args.offset ?? 0;
         const period = args.period ?? "all-time";
 
+        // If season is specified, get challenge IDs for that season
+        let seasonChallengeIds: Set<string> | null = null;
+        if (args.season) {
+            const challenges = await ctx.db.query("challenges").collect();
+            seasonChallengeIds = new Set(
+                challenges
+                    .filter((c) => c.season === args.season)
+                    .map((c) => c._id.toString()),
+            );
+        }
+
         if (period === "all-time") {
+            // When season is active, compute from badges rather than user points
+            if (seasonChallengeIds) {
+                const allBadges = await ctx.db.query("badges").collect();
+                const seasonBadges = allBadges.filter((b) =>
+                    seasonChallengeIds!.has(b.challengeId.toString()),
+                );
+
+                const userPoints = new Map<string, number>();
+                for (const badge of seasonBadges) {
+                    const current = userPoints.get(badge.userId.toString()) ?? 0;
+                    userPoints.set(badge.userId.toString(), current + badge.level * 10);
+                }
+
+                const allSorted = [...userPoints.entries()].sort((a, b) => b[1] - a[1]);
+                const hasMore = allSorted.length > offset + limit;
+                const sorted = allSorted.slice(offset, offset + limit);
+
+                const entries = await Promise.all(
+                    sorted.map(async ([userId, pts]) => {
+                        const user = await ctx.db.get(userId as any);
+                        const badges = await ctx.db
+                            .query("badges")
+                            .withIndex("by_user", (q) => q.eq("userId", userId as any))
+                            .take(4);
+                        return { ...user!, points: pts, badges, skills: (user as any)?.skills ?? [] };
+                    }),
+                );
+                return { entries, hasMore };
+            }
+
+            // Original all-time logic (no season filter)
             const allUsers = await ctx.db.query("users").collect();
             const allRanked = allUsers
                 .filter((u) => u.points > 0)
@@ -58,7 +101,11 @@ export const leaderboard = query({
                 : Date.now() - 30 * 24 * 60 * 60 * 1000;
 
         const recentBadges = await ctx.db.query("badges").collect();
-        const filtered = recentBadges.filter((b) => b.awardedAt >= cutoff);
+        const filtered = recentBadges.filter((b) => {
+            if (b.awardedAt < cutoff) return false;
+            if (seasonChallengeIds && !seasonChallengeIds.has(b.challengeId.toString())) return false;
+            return true;
+        });
 
         // Aggregate points per user
         const userPoints = new Map<string, number>();

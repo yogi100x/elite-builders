@@ -5,6 +5,7 @@ import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { LeaderboardTable } from "@/components/leaderboard-table"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 type Period = "all-time" | "month" | "week"
 
@@ -13,11 +14,13 @@ const PAGE_SIZE = 50
 export default function LeaderboardPage() {
     const [period, setPeriod] = useState<Period>("all-time")
     const [offset, setOffset] = useState(0)
+    const [season, setSeason] = useState<string | undefined>(undefined)
 
-    // Reset offset when period changes
-    useEffect(() => { setOffset(0) }, [period])
+    // Reset offset when period or season changes
+    useEffect(() => { setOffset(0) }, [period, season])
 
-    const result = useQuery(api.badges.leaderboard, { period, limit: PAGE_SIZE, offset })
+    const seasons = useQuery(api.challenges.listSeasons)
+    const result = useQuery(api.badges.leaderboard, { period, limit: PAGE_SIZE, offset, season })
 
     return (
         <div className="space-y-6">
@@ -26,17 +29,32 @@ export default function LeaderboardPage() {
                     <h1 className="font-display text-3xl font-bold">Leaderboard</h1>
                     <p className="text-muted-foreground mt-1">Top builders ranked by total score.</p>
                 </div>
-                <div className="flex gap-1">
-                    {(["all-time", "month", "week"] as Period[]).map((p) => (
-                        <Button
-                            key={p}
-                            variant={period === p ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setPeriod(p)}
-                        >
-                            {p === "all-time" ? "All Time" : p === "month" ? "This Month" : "This Week"}
-                        </Button>
-                    ))}
+                <div className="flex items-center gap-3">
+                    {seasons && seasons.length > 0 && (
+                        <Select value={season ?? "all"} onValueChange={(v) => setSeason(v === "all" ? undefined : v)}>
+                            <SelectTrigger className="w-[160px]">
+                                <SelectValue placeholder="All Seasons" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Seasons</SelectItem>
+                                {seasons.map((s) => (
+                                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                    <div className="flex gap-1">
+                        {(["all-time", "month", "week"] as Period[]).map((p) => (
+                            <Button
+                                key={p}
+                                variant={period === p ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setPeriod(p)}
+                            >
+                                {p === "all-time" ? "All Time" : p === "month" ? "This Month" : "This Week"}
+                            </Button>
+                        ))}
+                    </div>
                 </div>
             </div>
             {result !== undefined ? (

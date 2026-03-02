@@ -29,6 +29,15 @@ export const listPublic = query({
     },
 });
 
+export const listSeasons = query({
+    args: {},
+    handler: async (ctx) => {
+        const challenges = await ctx.db.query("challenges").collect();
+        const seasons = [...new Set(challenges.map((c) => c.season).filter(Boolean))] as string[];
+        return seasons.sort();
+    },
+});
+
 export const getById = query({
     args: { id: v.id("challenges") },
     handler: async (ctx, args) => {
@@ -49,6 +58,11 @@ export const listOpenInternal = internalQuery({
             .withIndex("by_status", (q) => q.eq("status", "open"))
             .collect()
     },
+})
+
+export const listAllInternal = internalQuery({
+    args: {},
+    handler: async (ctx) => ctx.db.query("challenges").collect(),
 })
 
 export const listTopSix = query({
