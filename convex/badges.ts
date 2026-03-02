@@ -1,4 +1,4 @@
-import { query, internalMutation } from "./_generated/server";
+import { query, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { requireAuth } from "./lib/auth";
 
@@ -301,3 +301,23 @@ export const grantFirstBuild = internalMutation({
         });
     },
 });
+
+export const leaderboardInternal = internalQuery({
+    args: {},
+    handler: async (ctx) => {
+        const allUsers = await ctx.db.query("users").collect()
+        return allUsers
+            .filter((u) => u.points > 0)
+            .sort((a, b) => b.points - a.points)
+    },
+})
+
+export const listByUserInternal = internalQuery({
+    args: { userId: v.id("users") },
+    handler: async (ctx, { userId }) => {
+        return ctx.db
+            .query("badges")
+            .withIndex("by_user", (q) => q.eq("userId", userId))
+            .collect()
+    },
+})

@@ -127,3 +127,23 @@ export async function sendScoringEmail(
     `;
     await sendEmail(to, `AI Score Ready: ${provisionalScore}/100 — ${challengeTitle}`, emailTemplate("AI Scoring Complete", body));
 }
+
+export async function sendWeeklyDigestEmail(
+    to: string,
+    name: string,
+    newChallenges: number,
+    newBadges: number,
+    leaderboardRank: number | null,
+): Promise<void> {
+    const body = `
+        <p style="color: #374151;">Hi ${name},</p>
+        <p style="color: #374151;">Here's your weekly EliteBuilders digest:</p>
+        <ul style="color: #374151;">
+            <li><strong>${newChallenges}</strong> new challenge${newChallenges !== 1 ? "s" : ""} posted this week</li>
+            <li><strong>${newBadges}</strong> badge${newBadges !== 1 ? "s" : ""} earned this week</li>
+            ${leaderboardRank ? `<li>Current leaderboard rank: <strong>#${leaderboardRank}</strong></li>` : ""}
+        </ul>
+        <p style="color: #374151;">Keep building!</p>
+    `;
+    await sendEmail(to, "Your Weekly EliteBuilders Digest", emailTemplate("Weekly Digest", body));
+}

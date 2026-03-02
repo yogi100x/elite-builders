@@ -238,6 +238,11 @@ export const makeAdmin = internalMutation({
     }
 });
 
+export const listAllInternal = internalQuery({
+    args: {},
+    handler: async (ctx) => ctx.db.query("users").collect(),
+})
+
 export const listJudges = query({
     args: {},
     handler: async (ctx) => {

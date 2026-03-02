@@ -11,7 +11,9 @@
 import type * as aiScoring from "../aiScoring.js";
 import type * as autoBadges from "../autoBadges.js";
 import type * as badges from "../badges.js";
+import type * as bookmarks from "../bookmarks.js";
 import type * as challenges from "../challenges.js";
+import type * as crons from "../crons.js";
 import type * as email from "../email.js";
 import type * as engagements from "../engagements.js";
 import type * as github from "../github.js";
@@ -38,7 +40,9 @@ declare const fullApi: ApiFromModules<{
   aiScoring: typeof aiScoring;
   autoBadges: typeof autoBadges;
   badges: typeof badges;
+  bookmarks: typeof bookmarks;
   challenges: typeof challenges;
+  crons: typeof crons;
   email: typeof email;
   engagements: typeof engagements;
   github: typeof github;

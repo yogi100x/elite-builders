@@ -1,7 +1,7 @@
 import { internalAction } from "./_generated/server"
 import { v } from "convex/values"
 import { internal } from "./_generated/api"
-import { sendAwardEmail, sendRejectionEmail, sendSponsorInterestEmail, sendScoringEmail } from "./lib/email"
+import { sendAwardEmail, sendRejectionEmail, sendSponsorInterestEmail, sendScoringEmail, sendWeeklyDigestEmail } from "./lib/email"
 
 export const sendAward = internalAction({
     args: {
@@ -57,5 +57,53 @@ export const sendScoring = internalAction({
         const prefs = internalUser.emailPreferences
         if (prefs && !prefs.scoringNotifications) return
         await sendScoringEmail(internalUser.email, internalUser.name, args.challengeTitle, args.provisionalScore)
+    },
+})
+
+export const processWeeklyDigest = internalAction({
+    args: {},
+    handler: async (ctx) => {
+        const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+
+        // Get all users
+        const users: any[] = await ctx.runQuery(internal.users.listAllInternal, {})
+
+        // Count new challenges this week
+        const challenges: any[] = await ctx.runQuery(internal.challenges.listAllInternal, {})
+        const newChallengeCount = challenges.filter(
+            (c: any) => c._creationTime >= oneWeekAgo,
+        ).length
+
+        // Get leaderboard for rank lookup
+        const leaderboard: any = await ctx.runQuery(internal.badges.leaderboardInternal, {})
+
+        for (const user of users) {
+            // Check if user opted into weekly digest
+            const prefs = user.emailPreferences
+            if (prefs && !prefs.weeklyDigest) continue
+            // Skip users with no email preferences set (default opt-in is fine)
+
+            // Count badges earned by this user in the past week
+            const userBadges: any[] = await ctx.runQuery(internal.badges.listByUserInternal, {
+                userId: user._id,
+            })
+            const newBadgeCount = userBadges.filter(
+                (b: any) => b.awardedAt >= oneWeekAgo,
+            ).length
+
+            // Find leaderboard rank
+            const rankIndex = leaderboard.findIndex(
+                (entry: any) => entry._id?.toString() === user._id.toString(),
+            )
+            const rank = rankIndex >= 0 ? rankIndex + 1 : null
+
+            await sendWeeklyDigestEmail(
+                user.email,
+                user.name,
+                newChallengeCount,
+                newBadgeCount,
+                rank,
+            )
+        }
     },
 })
