@@ -11,12 +11,20 @@ import { Search } from "lucide-react"
 export default function ChallengesPage() {
     const [search, setSearch] = useState("")
     const [difficulty, setDifficulty] = useState<string>("all")
+    const [statusFilter, setStatusFilter] = useState<string>("all")
+    const [tagFilter, setTagFilter] = useState<string>("all")
 
-    const challenges = useQuery(api.challenges.listPublic, difficulty !== "all" ? { difficulty } : {})
+    const challenges = useQuery(api.challenges.listPublic, {})
 
-    const filtered = challenges?.filter((c) =>
-        search === "" || c.title.toLowerCase().includes(search.toLowerCase())
-    )
+    const allTags = [...new Set(challenges?.flatMap((c) => c.tags) ?? [])]
+
+    const filtered = challenges?.filter((c) => {
+        if (difficulty !== "all" && c.difficulty !== difficulty) return false
+        if (statusFilter !== "all" && c.status !== statusFilter) return false
+        if (tagFilter !== "all" && !c.tags.includes(tagFilter)) return false
+        if (search && !c.title.toLowerCase().includes(search.toLowerCase())) return false
+        return true
+    })
 
     return (
         <div className="space-y-6">
@@ -44,6 +52,31 @@ export default function ChallengesPage() {
                         {Object.entries(DIFFICULTY_LABELS).map(([key, label]) => (
                             <SelectItem key={key} value={key}>
                                 {label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-[140px]">
+                        <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
+                    </SelectContent>
+                </Select>
+
+                <Select value={tagFilter} onValueChange={setTagFilter}>
+                    <SelectTrigger className="w-full sm:w-[160px]">
+                        <SelectValue placeholder="Tag" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Tags</SelectItem>
+                        {allTags.map((tag) => (
+                            <SelectItem key={tag} value={tag}>
+                                {tag}
                             </SelectItem>
                         ))}
                     </SelectContent>
