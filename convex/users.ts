@@ -60,6 +60,33 @@ export const getMe = query({
     },
 });
 
+/** Ensures the authenticated user has a record in Convex — handles webhook race.
+ *  Called from AuthGuard on mount so all subsequent queries find the user. */
+export const ensureUser = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return null;
+
+        const existing = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+            .unique();
+
+        if (existing) return existing._id;
+
+        // Webhook hasn't fired yet — create the user now
+        return ctx.db.insert("users", {
+            clerkId: identity.subject,
+            email: identity.email ?? "",
+            name: identity.name ?? "",
+            profileImageUrl: identity.pictureUrl ?? "",
+            role: "candidate",
+            points: 0,
+        });
+    },
+});
+
 export const assignRole = mutation({
     args: {
         targetClerkId: v.string(),
