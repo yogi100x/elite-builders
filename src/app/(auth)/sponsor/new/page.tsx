@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { Plus, Trash2, Info } from "lucide-react"
+import { Plus, Trash2, Info, Github, ExternalLink } from "lucide-react"
 
 const rubricCriterionSchema = z.object({
     name: z.string().min(1, "Criterion name is required"),
@@ -157,99 +157,271 @@ export default function NewChallengePage() {
                         <FormItem><FormLabel>Data Pack URL (optional)</FormLabel><FormControl><Input placeholder="https://example.com/data-pack.zip" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
 
-                    {/* Standardized Testing Setup Guide */}
-                    <details className="group rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/30">
-                        <summary className="flex cursor-pointer items-center gap-2 p-4 text-sm font-medium text-blue-800 dark:text-blue-300 [&::-webkit-details-marker]:hidden list-none">
-                            <Info className="h-4 w-4 shrink-0" />
-                            <span>How to set up a template repo &amp; testing for your challenge</span>
-                            <span className="ml-auto text-xs text-blue-500 group-open:hidden">Click to expand</span>
-                        </summary>
-                        <div className="border-t border-blue-200 dark:border-blue-900 px-4 pb-4 pt-3 text-sm text-blue-900 dark:text-blue-200 space-y-3">
-                            <div>
-                                <p className="font-semibold mb-1">1. Create a Template Repository</p>
-                                <ul className="list-disc pl-5 space-y-1 text-xs text-blue-800 dark:text-blue-300">
-                                    <li>Create a public GitHub repo with starter code and boilerplate</li>
-                                    <li>Include a <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">README.md</code> with setup instructions and the challenge requirements</li>
-                                    <li>Add a <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">package.json</code> with test dependencies pre-configured (e.g., Jest, Vitest)</li>
-                                    <li>Mark it as a <a href="https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository" target="_blank" rel="noopener noreferrer" className="underline">GitHub template repository</a> so candidates can use &quot;Use this template&quot;</li>
-                                </ul>
+                    {/* ── Standardized Testing Section ── */}
+                    <div className="space-y-4 rounded-lg border p-5 bg-muted/30">
+                        <div>
+                            <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+                                <Info className="h-5 w-5 text-brand-primary" />
+                                Standardized Testing (optional)
+                            </h2>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                Provide a template repository so every candidate starts from the same codebase.
+                                You control what candidates see (visible tests) and what stays secret (hidden tests).
+                            </p>
+                        </div>
+
+                        {/* Example template repo link */}
+                        <a
+                            href="https://github.com/yogi100x/elitebuilders-challenge-template"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 rounded-md border border-blue-200 bg-blue-50 p-4 hover:bg-blue-100 transition-colors dark:border-blue-900 dark:bg-blue-950/40 dark:hover:bg-blue-950/60"
+                        >
+                            <Github className="h-8 w-8 text-blue-600 dark:text-blue-400 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">
+                                    Clone our example template to get started
+                                </p>
+                                <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                                    A complete working example with visible tests, hidden tests, reference solution,
+                                    and the exact folder structure you need. Clone it, customize for your challenge, and publish.
+                                </p>
                             </div>
-                            <div>
-                                <p className="font-semibold mb-1">2. Structure Your Tests</p>
-                                <ul className="list-disc pl-5 space-y-1 text-xs text-blue-800 dark:text-blue-300">
-                                    <li><strong>Visible tests</strong> (in template repo): Put sample tests in <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">__tests__/</code> or <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">*.test.ts</code> — candidates see these and can run them locally</li>
-                                    <li><strong>Hidden tests</strong> (uploaded below): Upload additional test files that candidates will NOT see — these get injected into <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">__tests__/hidden/</code> during automated scoring</li>
-                                    <li>Hidden tests should import from the same paths candidates are expected to implement</li>
-                                </ul>
+                            <ExternalLink className="h-4 w-4 text-blue-400 dark:text-blue-500 shrink-0" />
+                        </a>
+
+                        {/* How it works — security model */}
+                        <div className="rounded-md border bg-background p-4 space-y-3">
+                            <p className="text-sm font-semibold">How visible vs. hidden tests work</p>
+                            <div className="grid sm:grid-cols-2 gap-3">
+                                <div className="rounded border border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/40 p-3">
+                                    <p className="text-xs font-bold text-green-800 dark:text-green-300 uppercase tracking-wide mb-1">Visible Tests — in your GitHub repo</p>
+                                    <ul className="text-xs text-green-700 dark:text-green-400 space-y-1 list-disc pl-4">
+                                        <li>Live in the template repo candidates fork</li>
+                                        <li>Candidates can read, run, and debug against them locally</li>
+                                        <li>Use these for basic sanity checks and to show expected interfaces</li>
+                                    </ul>
+                                </div>
+                                <div className="rounded border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/40 p-3">
+                                    <p className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wide mb-1">Hidden Tests — uploaded here</p>
+                                    <ul className="text-xs text-amber-700 dark:text-amber-400 space-y-1 list-disc pl-4">
+                                        <li>Stored on our server — <strong>never</strong> exposed to candidates</li>
+                                        <li>Injected into a secure sandbox only during automated scoring</li>
+                                        <li>Use these for edge cases, performance checks, and anti-cheat validation</li>
+                                    </ul>
+                                </div>
                             </div>
-                            <div>
-                                <p className="font-semibold mb-1">3. Recommended Repo Structure</p>
-                                <pre className="bg-blue-100 dark:bg-blue-900/50 rounded p-2 text-xs font-mono overflow-x-auto">{`your-challenge-template/
-├── README.md              # Challenge description + setup instructions
-├── package.json           # Dependencies + "test" script configured
+                        </div>
+
+                        {/* Step-by-step setup guide */}
+                        <div className="rounded-md border bg-background p-4 space-y-4">
+                            <p className="text-sm font-semibold">Step-by-step: Setting up your template repository</p>
+
+                            {/* Step 1 */}
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium">Step 1 — Create the GitHub repo</p>
+                                <ol className="text-xs text-muted-foreground space-y-1 list-decimal pl-5">
+                                    <li>Create a <strong>new public repository</strong> on GitHub (e.g., <code className="bg-muted px-1 rounded">your-org/challenge-api-design</code>)</li>
+                                    <li>Go to Settings → check <strong>&quot;Template repository&quot;</strong> — this lets candidates click &quot;Use this template&quot; instead of forking</li>
+                                    <li>Add a clear <code className="bg-muted px-1 rounded">README.md</code> explaining the challenge, setup steps, and what candidates need to implement</li>
+                                </ol>
+                            </div>
+
+                            {/* Step 2 */}
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium">Step 2 — Set up the project structure</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Your repo should follow this exact structure. Candidates will implement their solution in <code className="bg-muted px-1 rounded">src/</code> and can verify locally with the visible tests.
+                                </p>
+                                <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto leading-relaxed">{`your-challenge-template/
+│
+├── README.md                    # Challenge brief, rules, setup instructions
+├── package.json                 # Must include a "test" script (see Step 3)
+├── tsconfig.json                # TypeScript config (if using TS)
+│
 ├── src/
-│   └── index.ts           # Starter code / interface definitions
+│   ├── index.ts                 # Entry point — export functions/classes
+│   │                            #   candidates must implement
+│   ├── types.ts                 # Shared type definitions / interfaces
+│   └── utils.ts                 # Any helper code you provide
+│
 ├── __tests__/
-│   └── sample.test.ts     # Visible test (candidates can see)
-└── tsconfig.json          # TypeScript config (if applicable)`}</pre>
+│   ├── basic.test.ts            # VISIBLE — basic functionality tests
+│   ├── edge-cases.test.ts       # VISIBLE — edge case tests
+│   └── example.test.ts          # VISIBLE — example showing expected I/O
+│
+│   # NOTE: Do NOT create __tests__/hidden/ in the repo.
+│   # Hidden tests are uploaded separately via this form
+│   # and injected automatically during scoring.
+│
+└── .gitignore                   # node_modules, dist, etc.`}</pre>
                             </div>
-                            <div>
-                                <p className="font-semibold mb-1">4. Testing Tips</p>
-                                <ul className="list-disc pl-5 space-y-1 text-xs text-blue-800 dark:text-blue-300">
-                                    <li>Make sure <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">npm test</code> works in the template repo before publishing</li>
-                                    <li>If using a custom test command (e.g., <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">npx vitest run</code>), set it in the &quot;Test Run Command&quot; field</li>
-                                    <li>Hidden test files should be standalone <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.test.js</code> or <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.test.ts</code> files</li>
-                                    <li>Test results (passed/failed/total) are stored on the submission and visible to judges</li>
-                                </ul>
+
+                            {/* Step 3 */}
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium">Step 3 — Configure package.json</p>
+                                <p className="text-xs text-muted-foreground">
+                                    The <code className="bg-muted px-1 rounded">test</code> script is what runs in our scoring sandbox. Make sure it works with <code className="bg-muted px-1 rounded">npm install &amp;&amp; npm test</code>.
+                                </p>
+                                <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto leading-relaxed">{`{
+  "name": "challenge-api-design",
+  "scripts": {
+    "test": "jest --verbose --forceExit",
+    "test:watch": "jest --watch"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  }
+}`}</pre>
+                                <p className="text-xs text-muted-foreground italic">
+                                    Vitest works too — just change the test script to <code className="bg-muted px-1 rounded">&quot;test&quot;: &quot;vitest run&quot;</code> and update the &quot;Test Run Command&quot; field below.
+                                </p>
+                            </div>
+
+                            {/* Step 4 */}
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium">Step 4 — Write visible tests</p>
+                                <p className="text-xs text-muted-foreground">
+                                    These go in the repo. They help candidates understand the expected interface and verify their solution works. Example:
+                                </p>
+                                <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto leading-relaxed">{`// __tests__/basic.test.ts
+import { createUser, getUser } from '../src/index';
+
+describe('User API - Basic', () => {
+  test('should create a user and return an id', () => {
+    const user = createUser({ name: 'Alice', email: 'a@b.com' });
+    expect(user).toHaveProperty('id');
+    expect(user.name).toBe('Alice');
+  });
+
+  test('should retrieve a user by id', () => {
+    const created = createUser({ name: 'Bob', email: 'b@c.com' });
+    const found = getUser(created.id);
+    expect(found).toEqual(created);
+  });
+});`}</pre>
+                            </div>
+
+                            {/* Step 5 */}
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium">Step 5 — Write hidden tests (uploaded below)</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Create separate test files on your machine. These are <strong>never</strong> pushed to GitHub — you upload them via the form below.
+                                    They test edge cases, error handling, and requirements that candidates shouldn&apos;t see in advance.
+                                </p>
+                                <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto leading-relaxed">{`// hidden_validation.test.ts  (upload this file below)
+import { createUser, getUser, deleteUser } from '../src/index';
+
+describe('User API - Hidden Validation', () => {
+  test('should reject duplicate emails', () => {
+    createUser({ name: 'A', email: 'dup@test.com' });
+    expect(() => createUser({ name: 'B', email: 'dup@test.com' }))
+      .toThrow();
+  });
+
+  test('should return null for non-existent user', () => {
+    expect(getUser('non-existent-id')).toBeNull();
+  });
+
+  test('should handle deletion correctly', () => {
+    const user = createUser({ name: 'C', email: 'c@test.com' });
+    deleteUser(user.id);
+    expect(getUser(user.id)).toBeNull();
+  });
+});`}</pre>
+                                <p className="text-xs text-muted-foreground">
+                                    <strong>Important:</strong> Hidden tests import from the <em>same paths</em> as visible tests
+                                    (e.g., <code className="bg-muted px-1 rounded">../src/index</code>). They run in the same project directory —
+                                    they just live in <code className="bg-muted px-1 rounded">__tests__/hidden/</code> instead of <code className="bg-muted px-1 rounded">__tests__/</code>.
+                                </p>
+                            </div>
+
+                            {/* Step 6 */}
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium">Step 6 — Verify everything works</p>
+                                <ol className="text-xs text-muted-foreground space-y-1 list-decimal pl-5">
+                                    <li>Clone your template repo locally: <code className="bg-muted px-1 rounded">git clone &amp;&amp; npm install &amp;&amp; npm test</code> — all visible tests should pass</li>
+                                    <li>Copy your hidden test files into <code className="bg-muted px-1 rounded">__tests__/hidden/</code> locally and run <code className="bg-muted px-1 rounded">npm test</code> again — hidden tests should also pass against your reference implementation</li>
+                                    <li>Remove <code className="bg-muted px-1 rounded">__tests__/hidden/</code> before pushing (it should NOT be in the repo)</li>
+                                    <li>Delete or stub out your reference implementation in <code className="bg-muted px-1 rounded">src/</code> so candidates start with the expected interface but empty functions</li>
+                                </ol>
                             </div>
                         </div>
-                    </details>
 
-                    <FormField control={form.control} name="templateRepoUrl" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Template Repo URL (optional)</FormLabel>
-                            <FormControl>
-                                <Input placeholder="https://github.com/your-org/challenge-template" {...field} />
-                            </FormControl>
-                            <p className="text-xs text-muted-foreground">
-                                Candidates will fork this repo as their starting point. Include visible test files here.
-                            </p>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-
-                    <FormField control={form.control} name="testRunCommand" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Test Run Command (optional)</FormLabel>
-                            <FormControl>
-                                <Input placeholder="npm test" {...field} />
-                            </FormControl>
-                            <p className="text-xs text-muted-foreground">
-                                Custom command to run tests in the sandbox. Defaults to &quot;npm test&quot; if empty.
-                            </p>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Hidden Test Files (optional)</label>
-                        <div className="flex items-center gap-2">
-                            <Input
-                                type="file"
-                                multiple
-                                accept=".js,.ts,.jsx,.tsx"
-                                onChange={(e) => {
-                                    if (e.target.files) {
-                                        setHiddenTestFiles(Array.from(e.target.files))
-                                    }
-                                }}
-                            />
+                        {/* Checklist */}
+                        <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground space-y-1">
+                            <p className="font-semibold text-foreground">Pre-publish checklist</p>
+                            <ul className="space-y-0.5">
+                                <li>[ ] Template repo is public and marked as &quot;Template repository&quot; in GitHub settings</li>
+                                <li>[ ] <code className="bg-muted px-1 rounded">npm install &amp;&amp; npm test</code> works in a clean clone</li>
+                                <li>[ ] Visible tests pass against your reference solution</li>
+                                <li>[ ] Hidden tests pass locally when placed in <code className="bg-muted px-1 rounded">__tests__/hidden/</code></li>
+                                <li>[ ] Hidden test files are NOT committed to the repo</li>
+                                <li>[ ] <code className="bg-muted px-1 rounded">src/</code> has stub implementations (empty function bodies) for candidates to fill in</li>
+                                <li>[ ] README explains setup, what to implement, and how to run visible tests</li>
+                            </ul>
                         </div>
-                        {hiddenTestFiles.length > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                                {hiddenTestFiles.length} file(s) selected. These will be injected into __tests__/hidden/ during scoring.
-                            </p>
-                        )}
+
+                        {/* Form fields — template repo, test command, hidden files */}
+                        <div className="space-y-4 pt-2 border-t">
+                            <FormField control={form.control} name="templateRepoUrl" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Template Repository URL</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="https://github.com/your-org/challenge-api-design" {...field} />
+                                    </FormControl>
+                                    <p className="text-xs text-muted-foreground">
+                                        The public GitHub repo candidates will fork/clone. Must contain visible tests and stub implementations.
+                                    </p>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+
+                            <FormField control={form.control} name="testRunCommand" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Test Run Command</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="npm test" {...field} />
+                                    </FormControl>
+                                    <p className="text-xs text-muted-foreground">
+                                        The command our sandbox runs to execute tests. Defaults to <code className="bg-muted px-1 rounded">npm test</code>. Use <code className="bg-muted px-1 rounded">npx vitest run</code> for Vitest, <code className="bg-muted px-1 rounded">npx jest --forceExit</code> for Jest, etc.
+                                    </p>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Hidden Test Files</label>
+                                <p className="text-xs text-muted-foreground mb-2">
+                                    Upload your secret test files here. These are stored on our server and injected into
+                                    <code className="bg-muted px-1 rounded ml-1">__tests__/hidden/</code> during automated scoring.
+                                    Candidates cannot see or download these files.
+                                </p>
+                                <Input
+                                    type="file"
+                                    multiple
+                                    accept=".js,.ts,.jsx,.tsx"
+                                    onChange={(e) => {
+                                        if (e.target.files) {
+                                            setHiddenTestFiles(Array.from(e.target.files))
+                                        }
+                                    }}
+                                />
+                                {hiddenTestFiles.length > 0 && (
+                                    <div className="rounded border bg-muted/50 p-2">
+                                        <p className="text-xs font-medium">{hiddenTestFiles.length} hidden test file(s) selected:</p>
+                                        <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                                            {hiddenTestFiles.map((f, i) => (
+                                                <li key={i} className="font-mono">{f.name} ({(f.size / 1024).toFixed(1)} KB)</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     <FormField control={form.control} name="tags" render={({ field }) => (
