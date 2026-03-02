@@ -104,7 +104,7 @@ EliteBuilders is a developer competition and hiring platform where candidates so
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/elitebuilders.git
+git clone https://github.com/yogi100x/elite-builders.git
 cd elitebuilders
 
 # Install dependencies
@@ -159,6 +159,13 @@ To populate initial challenges for development:
 1. Open the Convex dashboard at [dashboard.convex.dev](https://dashboard.convex.dev)
 2. Navigate to **Functions** > **seed** > **seedChallenges**
 3. Click **Run**
+
+### Related Repositories
+
+| Repository | Purpose | Link |
+|---|---|---|
+| **Challenge Template** | Reference template for sponsors to set up standardized testing (visible + hidden tests) | [elitebuilders-challenge-template](https://github.com/yogi100x/elitebuilders-challenge-template) |
+| **Example Submission** | Sample candidate submission for the User API Design Challenge (used for end-to-end testing) | [api-challenge-submission-test](https://github.com/yogi100x/api-challenge-submission-test) |
 
 ---
 
