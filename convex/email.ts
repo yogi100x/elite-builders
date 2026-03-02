@@ -13,6 +13,8 @@ export const sendAward = internalAction({
     handler: async (ctx, args) => {
         const internalUser: any = await ctx.runQuery(internal.users.getById, { userId: args.userId })
         if (!internalUser) return
+        const prefs = internalUser.emailPreferences
+        if (prefs && !prefs.awardNotifications) return
         await sendAwardEmail(internalUser.email, internalUser.name, args.badgeName, args.feedback, args.score)
     },
 })
@@ -22,6 +24,8 @@ export const sendRejection = internalAction({
     handler: async (ctx, args) => {
         const internalUser: any = await ctx.runQuery(internal.users.getById, { userId: args.userId })
         if (!internalUser) return
+        const prefs = internalUser.emailPreferences
+        if (prefs && !prefs.rejectionNotifications) return
         await sendRejectionEmail(internalUser.email, internalUser.name, args.feedback)
     },
 })

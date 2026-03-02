@@ -179,6 +179,22 @@ export const updateProfile = mutation({
     },
 });
 
+export const updateEmailPreferences = mutation({
+    args: {
+        awardNotifications: v.boolean(),
+        rejectionNotifications: v.boolean(),
+        scoringNotifications: v.boolean(),
+        sponsorInterest: v.boolean(),
+        weeklyDigest: v.boolean(),
+    },
+    handler: async (ctx, args) => {
+        const caller = await requireAuth(ctx);
+        await ctx.db.patch(caller._id, {
+            emailPreferences: args,
+        });
+    },
+});
+
 import { internalMutation } from "./_generated/server";
 
 export const makeAdmin = internalMutation({
