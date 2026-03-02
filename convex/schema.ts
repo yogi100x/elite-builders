@@ -42,6 +42,16 @@ export default defineSchema({
         status: v.union(v.literal("open"), v.literal("closed")),
         prize: v.string(),
         deadline: v.number(),
+        dataPackUrl: v.optional(v.string()),
+        rubricCriteria: v.optional(
+            v.array(
+                v.object({
+                    name: v.string(),
+                    maxScore: v.number(),
+                    description: v.string(),
+                }),
+            ),
+        ),
     })
         .index("by_sponsor", ["sponsorId"])
         .index("by_status", ["status"])
@@ -76,6 +86,16 @@ export default defineSchema({
             v.literal("not-selected"),
         ),
 
+        // AI scoring pipeline state (real-time tracking)
+        scoringStatus: v.optional(
+            v.union(
+                v.literal("pending"),
+                v.literal("scoring"),
+                v.literal("scored"),
+                v.literal("failed"),
+            ),
+        ),
+
         // AI-generated provisional score (set automatically after submission)
         provisionalScore: v.optional(v.number()),
         aiRubricFeedback: v.optional(v.string()),    // JSON string: per-criterion breakdown
@@ -89,7 +109,8 @@ export default defineSchema({
         .index("by_challenge", ["challengeId"])
         .index("by_user", ["userId"])
         .index("by_status", ["status"])
-        .index("by_challenge_status", ["challengeId", "status"]),
+        .index("by_challenge_status", ["challengeId", "status"])
+        .index("by_challenge_user", ["challengeId", "userId"]),
 
     badges: defineTable({
         userId: v.id("users"),
@@ -127,4 +148,11 @@ export default defineSchema({
     })
         .index("by_email", ["email"])
         .index("by_token", ["token"]),
+
+    githubAnalysisCache: defineTable({
+        owner: v.string(),
+        repo: v.string(),
+        analysis: v.string(), // JSON-stringified RepoAnalysis
+        cachedAt: v.number(), // Date.now() when cached
+    }).index("by_repo", ["owner", "repo"]),
 });
