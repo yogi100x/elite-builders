@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, Authenticated, Unauthenticated } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { BadgeDisplay } from "@/components/badge-display"
+import { BadgeDisplay, BadgeProgression } from "@/components/badge-display"
 import { SubmissionStatusBadge } from "@/components/submission-status-badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -195,6 +195,7 @@ export default function DashboardPage() {
                         <CardHeader><CardTitle>My Badges</CardTitle></CardHeader>
                         <CardContent>
                             <BadgeDisplay badges={badges} />
+                            <BadgeProgression />
                         </CardContent>
                     </Card>
 

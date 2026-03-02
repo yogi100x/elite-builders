@@ -172,6 +172,42 @@ export const getCareerScore = query({
     },
 });
 
+export const getProgression = query({
+    handler: async (ctx) => {
+        const caller = await requireAuth(ctx);
+
+        const badges = await ctx.db
+            .query("badges")
+            .withIndex("by_user", (q) => q.eq("userId", caller._id))
+            .collect();
+
+        const submissions = await ctx.db
+            .query("submissions")
+            .withIndex("by_user", (q) => q.eq("userId", caller._id))
+            .collect();
+
+        const awardedCount = submissions.filter((s) => s.status === "awarded").length;
+
+        const milestones = [
+            { name: "Active Builder", trigger: "submissions" as const, threshold: 5, current: submissions.length },
+            { name: "Prolific Builder", trigger: "submissions" as const, threshold: 10, current: submissions.length },
+            { name: "Master Builder", trigger: "submissions" as const, threshold: 25, current: submissions.length },
+            { name: "Century Club", trigger: "points" as const, threshold: 100, current: caller.points },
+            { name: "Elite Builder", trigger: "points" as const, threshold: 500, current: caller.points },
+            { name: "Award Collector", trigger: "awards" as const, threshold: 3, current: awardedCount },
+            { name: "Award Master", trigger: "awards" as const, threshold: 10, current: awardedCount },
+        ];
+
+        const earnedNames = new Set(badges.map((b) => b.name));
+
+        return milestones.map((m) => ({
+            ...m,
+            earned: earnedNames.has(m.name),
+            progress: Math.min(m.current / m.threshold, 1),
+        }));
+    },
+});
+
 /** Awards a "First Build" badge if this is the user's first submission */
 export const grantFirstBuild = internalMutation({
     args: { userId: v.id("users"), submissionId: v.id("submissions"), challengeId: v.id("challenges") },
