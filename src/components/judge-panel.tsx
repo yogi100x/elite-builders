@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Doc } from "@/convex/_generated/dataModel"
 import { BADGE_COLORS } from "@/lib/constants"
+import { Badge } from "@/components/ui/badge"
 import { FileDown } from "lucide-react"
 
 interface Props {
@@ -124,6 +125,16 @@ export function JudgePanel({ submission, onDone }: Props) {
                             {submission.provisionalScore}/100
                         </span>
                     </div>
+                </div>
+            )}
+
+            {/* Test Results */}
+            {submission.testResults && (
+                <div className="flex items-center gap-2 rounded-lg border p-3">
+                    <span className="text-sm font-medium">Tests:</span>
+                    <Badge variant={submission.testResults.failed === 0 ? "default" : "destructive"}>
+                        {submission.testResults.passed}/{submission.testResults.total} passed
+                    </Badge>
                 </div>
             )}
 
