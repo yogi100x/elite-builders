@@ -13,24 +13,69 @@ export const listByUser = query({
     },
 });
 
-// Global leaderboard: top users by points (configurable limit, default 50)
+// Global leaderboard: top users by points with optional time period filtering
 export const leaderboard = query({
-    args: { limit: v.optional(v.number()) },
+    args: {
+        limit: v.optional(v.number()),
+        period: v.optional(
+            v.union(
+                v.literal("all-time"),
+                v.literal("month"),
+                v.literal("week"),
+            ),
+        ),
+    },
     handler: async (ctx, args) => {
-        const cap = args.limit ?? 50;
-        const users = await ctx.db.query("users").collect();
-        const sorted = users
-            .filter((u) => u.points > 0)
-            .sort((a, b) => b.points - a.points)
-            .slice(0, cap);
+        const limit = args.limit ?? 50;
+        const period = args.period ?? "all-time";
+
+        if (period === "all-time") {
+            const allUsers = await ctx.db.query("users").collect();
+            const ranked = allUsers
+                .filter((u) => u.points > 0)
+                .sort((a, b) => b.points - a.points)
+                .slice(0, limit);
+
+            return Promise.all(
+                ranked.map(async (user) => {
+                    const badges = await ctx.db
+                        .query("badges")
+                        .withIndex("by_user", (q) => q.eq("userId", user._id))
+                        .take(4);
+                    return { ...user, badges };
+                }),
+            );
+        }
+
+        // Time-filtered: aggregate from badges awarded in the period
+        const cutoff =
+            period === "week"
+                ? Date.now() - 7 * 24 * 60 * 60 * 1000
+                : Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+        const recentBadges = await ctx.db.query("badges").collect();
+        const filtered = recentBadges.filter((b) => b.awardedAt >= cutoff);
+
+        // Aggregate points per user
+        const userPoints = new Map<string, number>();
+        for (const badge of filtered) {
+            const current = userPoints.get(badge.userId.toString()) ?? 0;
+            userPoints.set(badge.userId.toString(), current + badge.level * 10);
+        }
+
+        // Sort and take top N
+        const sorted = [...userPoints.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, limit);
 
         return Promise.all(
-            sorted.map(async (user) => {
-                const userBadges = await ctx.db
+            sorted.map(async ([userId]) => {
+                const user = await ctx.db.get(userId as any);
+                const badges = await ctx.db
                     .query("badges")
-                    .withIndex("by_user", (q) => q.eq("userId", user._id))
+                    .withIndex("by_user", (q) => q.eq("userId", userId as any))
                     .take(4);
-                return { ...user, badges: userBadges };
+                return { ...user!, points: userPoints.get(userId)!, badges };
             }),
         );
     },

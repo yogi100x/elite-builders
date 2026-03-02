@@ -1,18 +1,21 @@
 "use client"
 import Link from "next/link"
-import { usePreloadedQuery } from "convex/react"
-import type { Preloaded } from "convex/react"
-import type { api } from "@/convex/_generated/api"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 interface Props {
-    preloaded: Preloaded<typeof api.badges.leaderboard>
+    entries: Array<{
+        _id: string;
+        name: string;
+        profileImageUrl?: string;
+        points: number;
+        badges: Array<{ _id: string; name: string; color: string }>;
+    }>;
 }
 
-export function LeaderboardTable({ preloaded }: Props) {
-    const users = usePreloadedQuery(preloaded)
+export function LeaderboardTable({ entries }: Props) {
+    const users = entries
 
     if (!users || users.length === 0) {
         return <p className="text-center py-16 text-muted-foreground">No badge winners yet — be the first!</p>
