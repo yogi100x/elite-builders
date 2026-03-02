@@ -238,6 +238,17 @@ export const makeAdmin = internalMutation({
     }
 });
 
+export const listJudges = query({
+    args: {},
+    handler: async (ctx) => {
+        await requireAuth(ctx, "sponsor")
+        const users = await ctx.db.query("users").collect()
+        return users
+            .filter((u) => u.role === "judge")
+            .map((u) => ({ _id: u._id, name: u.name, email: u.email }))
+    },
+})
+
 export const triggerProfileAnalysis = action({
     args: {},
     handler: async (ctx) => {

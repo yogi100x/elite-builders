@@ -2,10 +2,12 @@
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { useMutation } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
+import type { Id } from "@/convex/_generated/dataModel"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -38,6 +40,8 @@ type FormValues = z.infer<typeof schema>
 export default function NewChallengePage() {
     const router = useRouter()
     const createChallenge = useMutation(api.challenges.create)
+    const judges = useQuery(api.users.listJudges)
+    const [selectedJudges, setSelectedJudges] = useState<Id<"users">[]>([])
 
     const form = useForm<FormValues>({
         resolver: zodResolver(schema) as any,
@@ -66,7 +70,8 @@ export default function NewChallengePage() {
             const deadline = Date.now() + values.deadlineDays * 24 * 60 * 60 * 1000
             const rubricCriteria = values.rubricCriteria.length > 0 ? values.rubricCriteria : undefined
             const dataPackUrl = values.dataPackUrl || undefined
-            await createChallenge({ ...values, deadline, tags, rubricCriteria, dataPackUrl })
+            const assignedJudges = selectedJudges.length > 0 ? selectedJudges : undefined
+            await createChallenge({ ...values, deadline, tags, rubricCriteria, dataPackUrl, assignedJudges })
             toast.success("Challenge created!")
             router.push("/sponsor")
         } catch (err) {
@@ -187,6 +192,31 @@ export default function NewChallengePage() {
                             </Card>
                         ))}
                     </div>
+
+                    {/* Judge Assignment */}
+                    {judges && judges.length > 0 && (
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Assign Judges (Optional)</label>
+                            <div className="space-y-1">
+                                {judges.map((judge) => (
+                                    <label key={judge._id} className="flex items-center gap-2 text-sm">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedJudges.includes(judge._id)}
+                                            onChange={(e) => {
+                                                setSelectedJudges((prev) =>
+                                                    e.target.checked
+                                                        ? [...prev, judge._id]
+                                                        : prev.filter((id) => id !== judge._id),
+                                                )
+                                            }}
+                                        />
+                                        {judge.name} ({judge.email})
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     <Button type="submit" className="w-full">Create Challenge</Button>
                 </form>

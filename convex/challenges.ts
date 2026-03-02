@@ -87,6 +87,7 @@ export const create = mutation({
         ),
         dataPackUrl: v.optional(v.string()),
         season: v.optional(v.string()),
+        assignedJudges: v.optional(v.array(v.id("users"))),
     },
     handler: async (ctx, args) => {
         const caller = await requireAuth(ctx, "sponsor");
