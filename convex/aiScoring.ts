@@ -217,6 +217,25 @@ ${buildExpectedJsonSection(rubricCriteria)}
                 relatedId: submissionId.toString(),
             })
 
+            // Optionally run sandbox tests if repo has a test script
+            if (submission.githubOwner && submission.githubRepo) {
+                try {
+                    const analysis = await ctx.runAction(internal.github.analyzeRepoInternal, {
+                        owner: submission.githubOwner,
+                        repo: submission.githubRepo,
+                    })
+                    const pkg = analysis.packageJson as Record<string, any> | undefined
+                    if (pkg?.scripts?.test && !String(pkg.scripts.test).includes("no test specified")) {
+                        await ctx.scheduler.runAfter(0, internal.sandbox.runTests, {
+                            submissionId,
+                            repoUrl: submission.githubRepoUrl ?? `https://github.com/${submission.githubOwner}/${submission.githubRepo}`,
+                        })
+                    }
+                } catch {
+                    // Sandbox scheduling is non-critical — don't fail scoring
+                }
+            }
+
             console.log(`[ai-scoring] Scored submission ${submissionId}: ${overallScore}/100`)
             return { overallScore, rubricScores: scoringResult.rubricScores }
         } catch (error) {

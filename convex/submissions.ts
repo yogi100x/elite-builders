@@ -104,6 +104,23 @@ export const setProvisionalScore = internalMutation({
     },
 });
 
+export const setTestResults = internalMutation({
+    args: {
+        submissionId: v.id("submissions"),
+        testResults: v.object({
+            passed: v.number(),
+            failed: v.number(),
+            total: v.number(),
+            details: v.optional(v.string()),
+        }),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.submissionId, {
+            testResults: args.testResults,
+        });
+    },
+});
+
 export const setScoringStatus = internalMutation({
     args: {
         submissionId: v.id("submissions"),
