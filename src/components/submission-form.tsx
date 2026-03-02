@@ -18,6 +18,7 @@ import { ALLOWED_UPLOAD_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES } from "@/lib/constant
 import type { GitHubRepo } from "@/lib/github/client"
 import { Github, Link2 } from "lucide-react"
 import { VideoEmbed } from "@/components/video-embed"
+import { Badge } from "@/components/ui/badge"
 
 const schema = z.object({
     deckUrl: z.string().url().optional().or(z.literal("")),
@@ -120,8 +121,15 @@ export function SubmissionForm({ challengeId }: { challengeId: Id<"challenges"> 
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {existingForChallenge && (
                     <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
-                        You already submitted v{existingForChallenge.version ?? 1}.
-                        Submitting again will create a new revision.
+                        <div className="flex items-center justify-between">
+                            <span>You already submitted v{existingForChallenge.version ?? 1}.
+                            Submitting again will create a new revision.</span>
+                            {existingForChallenge.startedAt && existingForChallenge.submittedAt && (
+                                <Badge variant="outline" className="text-xs">
+                                    {Math.round((existingForChallenge.submittedAt - existingForChallenge.startedAt) / 60000)} minutes elapsed
+                                </Badge>
+                            )}
+                        </div>
                     </div>
                 )}
 

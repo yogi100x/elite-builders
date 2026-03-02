@@ -47,6 +47,7 @@ export const create = mutation({
 
         const version = existingSubmission ? (existingSubmission.version ?? 1) + 1 : 1;
 
+        const now = Date.now();
         const submissionId = await ctx.db.insert("submissions", {
             ...args,
             userId: caller._id,
@@ -54,6 +55,8 @@ export const create = mutation({
             scoringStatus: "pending",
             version,
             previousSubmissionId: existingSubmission?._id,
+            startedAt: now,
+            submittedAt: now,
         });
 
         // Notify candidate that submission was received

@@ -141,6 +141,10 @@ export default defineSchema({
         score: v.optional(v.number()),
         feedback: v.optional(v.string()),
         judgedBy: v.optional(v.id("users")),
+
+        // Timing
+        startedAt: v.optional(v.number()),
+        submittedAt: v.optional(v.number()),
     })
         .index("by_challenge", ["challengeId"])
         .index("by_user", ["userId"])
@@ -214,4 +218,11 @@ export default defineSchema({
         recommendations: v.string(), // JSON: array of { challengeId, matchScore, reason }
         generatedAt: v.number(),
     }).index("by_user", ["userId"]),
+
+    challengeBookmarks: defineTable({
+        userId: v.id("users"),
+        challengeId: v.id("challenges"),
+        createdAt: v.number(),
+    }).index("by_user", ["userId"])
+      .index("by_user_challenge", ["userId", "challengeId"]),
 });
