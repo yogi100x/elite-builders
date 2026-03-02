@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Info } from "lucide-react"
 
 const rubricCriterionSchema = z.object({
     name: z.string().min(1, "Criterion name is required"),
@@ -156,6 +156,54 @@ export default function NewChallengePage() {
                     <FormField control={form.control} name="dataPackUrl" render={({ field }) => (
                         <FormItem><FormLabel>Data Pack URL (optional)</FormLabel><FormControl><Input placeholder="https://example.com/data-pack.zip" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
+
+                    {/* Standardized Testing Setup Guide */}
+                    <details className="group rounded-lg border border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/30">
+                        <summary className="flex cursor-pointer items-center gap-2 p-4 text-sm font-medium text-blue-800 dark:text-blue-300 [&::-webkit-details-marker]:hidden list-none">
+                            <Info className="h-4 w-4 shrink-0" />
+                            <span>How to set up a template repo &amp; testing for your challenge</span>
+                            <span className="ml-auto text-xs text-blue-500 group-open:hidden">Click to expand</span>
+                        </summary>
+                        <div className="border-t border-blue-200 dark:border-blue-900 px-4 pb-4 pt-3 text-sm text-blue-900 dark:text-blue-200 space-y-3">
+                            <div>
+                                <p className="font-semibold mb-1">1. Create a Template Repository</p>
+                                <ul className="list-disc pl-5 space-y-1 text-xs text-blue-800 dark:text-blue-300">
+                                    <li>Create a public GitHub repo with starter code and boilerplate</li>
+                                    <li>Include a <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">README.md</code> with setup instructions and the challenge requirements</li>
+                                    <li>Add a <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">package.json</code> with test dependencies pre-configured (e.g., Jest, Vitest)</li>
+                                    <li>Mark it as a <a href="https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository" target="_blank" rel="noopener noreferrer" className="underline">GitHub template repository</a> so candidates can use &quot;Use this template&quot;</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-semibold mb-1">2. Structure Your Tests</p>
+                                <ul className="list-disc pl-5 space-y-1 text-xs text-blue-800 dark:text-blue-300">
+                                    <li><strong>Visible tests</strong> (in template repo): Put sample tests in <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">__tests__/</code> or <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">*.test.ts</code> — candidates see these and can run them locally</li>
+                                    <li><strong>Hidden tests</strong> (uploaded below): Upload additional test files that candidates will NOT see — these get injected into <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">__tests__/hidden/</code> during automated scoring</li>
+                                    <li>Hidden tests should import from the same paths candidates are expected to implement</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p className="font-semibold mb-1">3. Recommended Repo Structure</p>
+                                <pre className="bg-blue-100 dark:bg-blue-900/50 rounded p-2 text-xs font-mono overflow-x-auto">{`your-challenge-template/
+├── README.md              # Challenge description + setup instructions
+├── package.json           # Dependencies + "test" script configured
+├── src/
+│   └── index.ts           # Starter code / interface definitions
+├── __tests__/
+│   └── sample.test.ts     # Visible test (candidates can see)
+└── tsconfig.json          # TypeScript config (if applicable)`}</pre>
+                            </div>
+                            <div>
+                                <p className="font-semibold mb-1">4. Testing Tips</p>
+                                <ul className="list-disc pl-5 space-y-1 text-xs text-blue-800 dark:text-blue-300">
+                                    <li>Make sure <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">npm test</code> works in the template repo before publishing</li>
+                                    <li>If using a custom test command (e.g., <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">npx vitest run</code>), set it in the &quot;Test Run Command&quot; field</li>
+                                    <li>Hidden test files should be standalone <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.test.js</code> or <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">.test.ts</code> files</li>
+                                    <li>Test results (passed/failed/total) are stored on the submission and visible to judges</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </details>
 
                     <FormField control={form.control} name="templateRepoUrl" render={({ field }) => (
                         <FormItem>

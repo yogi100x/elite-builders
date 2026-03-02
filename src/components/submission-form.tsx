@@ -139,7 +139,9 @@ export function SubmissionForm({ challengeId, templateRepoUrl }: { challengeId: 
                             This challenge has a template repository
                         </p>
                         <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
-                            Fork the template below and build your solution on top of it.
+                            Fork or use the template below to get started. Build your solution on top of it,
+                            then submit your forked repo. The sponsor has included visible tests you can run locally,
+                            and additional hidden tests will run automatically during scoring.
                         </p>
                         <a
                             href={templateRepoUrl}
