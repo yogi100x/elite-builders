@@ -17,6 +17,7 @@ export const listByUser = query({
 export const leaderboard = query({
     args: {
         limit: v.optional(v.number()),
+        offset: v.optional(v.number()),
         period: v.optional(
             v.union(
                 v.literal("all-time"),
@@ -27,16 +28,18 @@ export const leaderboard = query({
     },
     handler: async (ctx, args) => {
         const limit = args.limit ?? 50;
+        const offset = args.offset ?? 0;
         const period = args.period ?? "all-time";
 
         if (period === "all-time") {
             const allUsers = await ctx.db.query("users").collect();
-            const ranked = allUsers
+            const allRanked = allUsers
                 .filter((u) => u.points > 0)
-                .sort((a, b) => b.points - a.points)
-                .slice(0, limit);
+                .sort((a, b) => b.points - a.points);
+            const hasMore = allRanked.length > offset + limit;
+            const ranked = allRanked.slice(offset, offset + limit);
 
-            return Promise.all(
+            const entries = await Promise.all(
                 ranked.map(async (user) => {
                     const badges = await ctx.db
                         .query("badges")
@@ -45,6 +48,7 @@ export const leaderboard = query({
                     return { ...user, badges };
                 }),
             );
+            return { entries, hasMore };
         }
 
         // Time-filtered: aggregate from badges awarded in the period
@@ -63,12 +67,13 @@ export const leaderboard = query({
             userPoints.set(badge.userId.toString(), current + badge.level * 10);
         }
 
-        // Sort and take top N
-        const sorted = [...userPoints.entries()]
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, limit);
+        // Sort and paginate
+        const allSorted = [...userPoints.entries()]
+            .sort((a, b) => b[1] - a[1]);
+        const hasMore = allSorted.length > offset + limit;
+        const sorted = allSorted.slice(offset, offset + limit);
 
-        return Promise.all(
+        const entries = await Promise.all(
             sorted.map(async ([userId]) => {
                 const user = await ctx.db.get(userId as any);
                 const badges = await ctx.db
@@ -78,6 +83,7 @@ export const leaderboard = query({
                 return { ...user!, points: userPoints.get(userId)!, badges };
             }),
         );
+        return { entries, hasMore };
     },
 });
 

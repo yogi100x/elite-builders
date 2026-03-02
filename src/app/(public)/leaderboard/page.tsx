@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { LeaderboardTable } from "@/components/leaderboard-table"
@@ -8,9 +8,16 @@ import { Button } from "@/components/ui/button"
 
 type Period = "all-time" | "month" | "week"
 
+const PAGE_SIZE = 50
+
 export default function LeaderboardPage() {
     const [period, setPeriod] = useState<Period>("all-time")
-    const entries = useQuery(api.badges.leaderboard, { period, limit: 50 })
+    const [offset, setOffset] = useState(0)
+
+    // Reset offset when period changes
+    useEffect(() => { setOffset(0) }, [period])
+
+    const result = useQuery(api.badges.leaderboard, { period, limit: PAGE_SIZE, offset })
 
     return (
         <div className="space-y-6">
@@ -32,8 +39,30 @@ export default function LeaderboardPage() {
                     ))}
                 </div>
             </div>
-            {entries !== undefined ? (
-                <LeaderboardTable entries={entries} />
+            {result !== undefined ? (
+                <>
+                    <LeaderboardTable entries={result.entries} rankOffset={offset} />
+                    <div className="flex justify-center gap-2">
+                        {offset > 0 && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setOffset((prev) => Math.max(0, prev - PAGE_SIZE))}
+                                className="w-full max-w-xs"
+                            >
+                                Previous
+                            </Button>
+                        )}
+                        {result.hasMore && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setOffset((prev) => prev + PAGE_SIZE)}
+                                className="w-full max-w-xs"
+                            >
+                                Load More
+                            </Button>
+                        )}
+                    </div>
+                </>
             ) : (
                 <div className="space-y-3">
                     {Array.from({ length: 5 }).map((_, i) => (

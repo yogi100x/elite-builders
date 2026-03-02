@@ -12,9 +12,10 @@ interface Props {
         points: number;
         badges: Array<{ _id: string; name: string; color: string }>;
     }>;
+    rankOffset?: number;
 }
 
-export function LeaderboardTable({ entries }: Props) {
+export function LeaderboardTable({ entries, rankOffset = 0 }: Props) {
     const users = entries
 
     if (!users || users.length === 0) {
@@ -24,7 +25,7 @@ export function LeaderboardTable({ entries }: Props) {
     return (
         <div className="border rounded-card overflow-hidden">
             {users.map((user, index) => {
-                const rank = index + 1
+                const rank = rankOffset + index + 1
                 const isTop3 = rank <= 3
                 return (
                     <div
