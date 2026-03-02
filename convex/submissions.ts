@@ -193,10 +193,23 @@ export const listByChallenge = query({
     args: { challengeId: v.id("challenges") },
     handler: async (ctx, args) => {
         await requireAuth(ctx, "sponsor");
-        return ctx.db
+        const submissions = await ctx.db
             .query("submissions")
             .withIndex("by_challenge", (q) => q.eq("challengeId", args.challengeId))
             .collect();
+
+        return Promise.all(
+            submissions.map(async (sub) => {
+                const user = await ctx.db.get(sub.userId);
+                return {
+                    ...sub,
+                    candidateName: user?.name ?? "Unknown",
+                    candidateEmail: user?.email ?? "",
+                    candidateGithub: user?.githubUsername ?? null,
+                    candidateSkills: user?.skills ?? [],
+                };
+            }),
+        );
     },
 });
 

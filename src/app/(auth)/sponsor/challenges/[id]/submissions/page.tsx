@@ -185,6 +185,19 @@ export default function SponsorSubmissionsPage({ params }: { params: Promise<{ i
                                 #{index + 1}
                             </span>
                             <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-sm font-semibold">{sub.candidateName}</span>
+                                    {sub.candidateGithub && (
+                                        <span className="text-xs text-muted-foreground">@{sub.candidateGithub}</span>
+                                    )}
+                                </div>
+                                {sub.candidateSkills.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mb-2">
+                                        {sub.candidateSkills.slice(0, 5).map((skill: string) => (
+                                            <Badge key={skill} variant="secondary" className="text-xs">{skill}</Badge>
+                                        ))}
+                                    </div>
+                                )}
                                 <p className="font-mono text-xs text-muted-foreground truncate">{sub._id}</p>
                                 <div className="flex items-center gap-2 mt-1">
                                     {(sub.githubRepoUrl ?? sub.repoUrl) && (
