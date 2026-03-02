@@ -284,6 +284,16 @@ export const weeklyCountsBySponsor = query({
     },
 });
 
+export const getFileUrls = query({
+    args: { storageIds: v.array(v.id("_storage")) },
+    handler: async (ctx, args) => {
+        const urls = await Promise.all(
+            args.storageIds.map((id) => ctx.storage.getUrl(id))
+        );
+        return urls;
+    },
+});
+
 export const listAwardedByChallenge = internalQuery({
     args: { challengeId: v.id("challenges") },
     handler: async (ctx, { challengeId }) => {

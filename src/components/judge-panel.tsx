@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useMutation } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { VideoEmbed } from "@/components/video-embed"
 import { GitHubRepoPanel } from "@/components/github-repo-panel"
 import { api } from "@/convex/_generated/api"
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Doc } from "@/convex/_generated/dataModel"
 import { BADGE_COLORS } from "@/lib/constants"
+import { FileDown } from "lucide-react"
 
 interface Props {
     submission: Doc<"submissions">
@@ -25,6 +26,12 @@ export function JudgePanel({ submission, onDone }: Props) {
     const [badgeName, setBadgeName] = useState("Builder")
     const [badgeLevel, setBadgeLevel] = useState(2)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const fileUrls = useQuery(
+        api.submissions.getFileUrls,
+        submission.fileStorageIds && submission.fileStorageIds.length > 0
+            ? { storageIds: submission.fileStorageIds }
+            : "skip"
+    )
 
     async function handleAward() {
         if (!feedback.trim()) {
@@ -77,6 +84,27 @@ export function JudgePanel({ submission, onDone }: Props) {
                     {submission.videoUrl && <a href={submission.videoUrl} target="_blank" className="text-brand-primary underline">Video →</a>}
                 </div>
                 {submission.notes && <p className="text-sm text-muted-foreground italic">"{submission.notes}"</p>}
+
+                {/* Uploaded Files */}
+                {submission.fileStorageIds && submission.fileStorageIds.length > 0 && (
+                    <div className="space-y-2">
+                        <h3 className="text-sm font-medium">Uploaded Files</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {submission.fileStorageIds.map((storageId, i) => (
+                                <a
+                                    key={storageId}
+                                    href={fileUrls?.[i] ?? "#"}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
+                                >
+                                    <FileDown className="h-4 w-4" />
+                                    File {i + 1}
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {(submission.githubOwner && submission.githubRepo) && (
