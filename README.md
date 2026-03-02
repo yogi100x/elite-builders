@@ -277,10 +277,26 @@ Sponsors can set up automated test execution for their challenges using the **hy
 ## AI Integration
 
 ### Scoring Pipeline (`convex/aiScoring.ts`)
-- Evaluates submissions against 5 rubric criteria (or custom sponsor rubric)
-- Default criteria: Technical Implementation (40pts), Problem Understanding (20pts), Innovation (20pts), Documentation (10pts), Completeness (10pts)
+
+Gemini evaluates every submission and produces **two independent scores**:
+
+| Score | Range | What it measures |
+|---|---|---|
+| **Rubric Score** (`provisionalScore`) | 0–100 | How well the submission meets the challenge criteria — scored per criterion then summed |
+| **Code Quality Score** (`codeQualityScore`) | 0–100 | Engineering quality of the code itself — clean code, architecture, error handling, testing, best practices |
+
+**Default rubric criteria** (sponsors can define custom criteria per challenge):
+
+| Criterion | Max Points | Evaluates |
+|---|---|---|
+| Technical Implementation | 40 | Code quality, architecture, use of AI/ML techniques |
+| Problem Understanding | 20 | How well the submission addresses the stated problem |
+| Innovation | 20 | Creative approach, novel solution |
+| Documentation & Clarity | 10 | README quality, pitch clarity |
+| Completeness | 10 | End-to-end functionality, working demo |
+
 - Enhanced context: passes file tree, recent commits, repo topics, and stars/forks to Gemini alongside README and description
-- Produces a provisional 0-100 score with per-criterion JSON feedback
+- Both scores are provisional until a human judge reviews
 - Real-time status tracking: `pending` → `scoring` → `scored`/`failed`
 
 ### Sandbox Test Execution (`convex/sandbox.ts`)
