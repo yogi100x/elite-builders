@@ -165,7 +165,6 @@ To populate initial challenges for development:
 | Repository | Purpose | Link |
 |---|---|---|
 | **Challenge Template** | Reference template for sponsors to set up standardized testing (visible + hidden tests) | [elitebuilders-challenge-template](https://github.com/yogi100x/elitebuilders-challenge-template) |
-| **Example Submission** | Sample candidate submission for the User API Design Challenge (used for end-to-end testing) | [api-challenge-submission-test](https://github.com/yogi100x/api-challenge-submission-test) |
 
 ---
 
