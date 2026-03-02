@@ -22,6 +22,15 @@ export default defineSchema({
         skills: v.optional(v.array(v.string())),
         linkedinUrl: v.optional(v.string()),
         twitterUrl: v.optional(v.string()),
+        emailPreferences: v.optional(
+            v.object({
+                awardNotifications: v.boolean(),
+                rejectionNotifications: v.boolean(),
+                scoringNotifications: v.boolean(),
+                sponsorInterest: v.boolean(),
+                weeklyDigest: v.boolean(),
+            }),
+        ),
     })
         .index("by_clerk_id", ["clerkId"])
         .index("by_email", ["email"]),
@@ -30,6 +39,9 @@ export default defineSchema({
         userId: v.id("users"),
         orgName: v.string(),
         logoUrl: v.optional(v.string()),
+        website: v.optional(v.string()),
+        description: v.optional(v.string()),
+        industry: v.optional(v.string()),
     }).index("by_user", ["userId"]),
 
     challenges: defineTable({
@@ -45,7 +57,7 @@ export default defineSchema({
             v.literal("advanced"),
             v.literal("expert"),
         ),
-        status: v.union(v.literal("open"), v.literal("closed")),
+        status: v.union(v.literal("draft"), v.literal("open"), v.literal("closed")),
         prize: v.string(),
         deadline: v.number(),
         dataPackUrl: v.optional(v.string()),
@@ -59,6 +71,7 @@ export default defineSchema({
             ),
         ),
         assignedJudges: v.optional(v.array(v.id("users"))),
+        season: v.optional(v.string()),
     })
         .index("by_sponsor", ["sponsorId"])
         .index("by_status", ["status"])
