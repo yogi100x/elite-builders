@@ -30,9 +30,11 @@ function SubmissionRow({ sub }: { sub: Doc<"submissions"> }) {
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{sub.feedback}</p>
                 )}
             </div>
-            {/* SubmissionStatusBadge subscribes to live Convex queries — auto-updates as scoring/tests complete */}
+            {/* SubmissionStatusBadge subscribes to live Convex queries — auto-updates as scoring completes */}
             <SubmissionStatusBadge
                 status={sub.status}
+                scoringStatus={sub.scoringStatus}
+                provisionalScore={sub.provisionalScore}
             />
         </div>
     )
