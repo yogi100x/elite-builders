@@ -125,6 +125,7 @@ export default defineSchema({
 
         // AI-generated provisional score (set automatically after submission)
         provisionalScore: v.optional(v.number()),
+        codeQualityScore: v.optional(v.number()),    // 0-100 code quality score (separate from rubric)
         aiRubricFeedback: v.optional(v.string()),    // JSON string: per-criterion breakdown
         aiScoredAt: v.optional(v.number()),
 

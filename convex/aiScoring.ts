@@ -51,6 +51,7 @@ interface RubricScore {
 
 interface AIScoringResult {
     overallScore: number
+    codeQualityScore: number
     rubricScores: RubricScore[]
     strengths: string[]
     improvements: string[]
@@ -69,6 +70,7 @@ function buildExpectedJsonSection(criteria: RubricCriterion[]): string {
         .join(",\n")
     return `{
   "overallScore": <0-100 number>,
+  "codeQualityScore": <0-100 number>,
   "rubricScores": [
 ${rubricEntries}
   ],
@@ -220,6 +222,14 @@ SCORING GUIDANCE:
 - Tech Stack Alignment: Technologies should fit the problem domain and challenge requirements
 - Testing Evidence: Presence of test files and testing dependencies shows engineering maturity
 
+CODE QUALITY SCORE (separate from rubric — rate 0-100):
+Evaluate the engineering quality of the code itself, independent of whether it solves the challenge correctly:
+- Clean code: readable naming, consistent style, no dead code or commented-out blocks
+- Architecture: separation of concerns, modular design, appropriate abstractions
+- Error handling: graceful failures, input validation, meaningful error messages
+- Testing: presence and quality of tests, edge case coverage
+- Best practices: DRY, SOLID principles, no security anti-patterns, proper use of language features
+
 Return JSON in this exact format:
 ${buildExpectedJsonSection(rubricCriteria)}
 `
@@ -268,10 +278,14 @@ ${buildExpectedJsonSection(rubricCriteria)}
             // Clamp overall score to 0-100
             const overallScore = Math.max(0, Math.min(100, Math.round(scoringResult.overallScore)))
 
+            // Clamp code quality score to 0-100
+            const codeQualityScore = Math.max(0, Math.min(100, Math.round(scoringResult.codeQualityScore ?? 0)))
+
             // Persist provisional score to submission
             await ctx.runMutation(internal.submissions.setProvisionalScore, {
                 submissionId,
                 provisionalScore: overallScore,
+                codeQualityScore,
                 aiRubricFeedback: JSON.stringify(scoringResult),
             })
 

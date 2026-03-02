@@ -106,11 +106,13 @@ export const setProvisionalScore = internalMutation({
     args: {
         submissionId: v.id("submissions"),
         provisionalScore: v.number(),
+        codeQualityScore: v.optional(v.number()),
         aiRubricFeedback: v.string(),
     },
     handler: async (ctx, args) => {
         await ctx.db.patch(args.submissionId, {
             provisionalScore: args.provisionalScore,
+            codeQualityScore: args.codeQualityScore,
             aiRubricFeedback: args.aiRubricFeedback,
             aiScoredAt: Date.now(),
         });
