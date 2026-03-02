@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { Sidebar } from "@/components/layout/sidebar"
 import { Topnav } from "@/components/layout/topnav"
 import { AuthGuard } from "@/components/auth-guard"
