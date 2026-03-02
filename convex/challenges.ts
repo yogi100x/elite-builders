@@ -262,3 +262,42 @@ export const publishDraft = mutation({
         await ctx.db.patch(args.id, { status: "open" });
     },
 });
+
+export const createPlatformChallenge = mutation({
+    args: {
+        title: v.string(),
+        summary: v.string(),
+        overview: v.string(),
+        problemStatement: v.string(),
+        tags: v.array(v.string()),
+        difficulty: v.union(
+            v.literal("beginner"),
+            v.literal("intermediate"),
+            v.literal("advanced"),
+            v.literal("expert"),
+        ),
+        prize: v.string(),
+        deadline: v.number(),
+        season: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        await requireAuth(ctx, "admin");
+
+        const platformSponsor = await ctx.db
+            .query("sponsors")
+            .filter((q) => q.eq(q.field("orgName"), "EliteBuilders"))
+            .first();
+
+        if (!platformSponsor) {
+            throw new ConvexError(
+                "Platform sponsor not found. Run seed.seedChallenges first.",
+            );
+        }
+
+        return await ctx.db.insert("challenges", {
+            sponsorId: platformSponsor._id,
+            status: "open",
+            ...args,
+        });
+    },
+});
