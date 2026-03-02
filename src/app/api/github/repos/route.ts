@@ -10,10 +10,8 @@ export async function GET() {
     // Get the GitHub OAuth token Clerk holds for this user
     try {
         const client = await clerkClient()
-        const tokens = await client.users.getUserOauthAccessToken(userId, "oauth_github")
-
-        // Check if tokens were returned, handle both clerk v5 and v6 signature formats safely
-        const tokenList = (tokens as any).data || tokens;
+        const response = await client.users.getUserOauthAccessToken(userId, "github")
+        const tokenList = response.data
 
         if (!tokenList || tokenList.length === 0) {
             return Response.json({ error: "GitHub not connected — sign in with GitHub to select a repo" }, { status: 400 })

@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 const isPublicRoute = createRouteMatcher([
     "/",
@@ -23,7 +24,7 @@ export default clerkMiddleware(async (auth, req) => {
     const hasOnboarded = req.cookies.get("eb_onboarded");
 
     if (!hasOnboarded && !isOnboarding && !isApiRoute) {
-        return Response.redirect(new URL("/onboarding", req.url));
+        return NextResponse.redirect(new URL("/onboarding", req.url));
     }
 });
 
