@@ -1,6 +1,6 @@
 "use client"
 
-import { useQuery, useMutation, Authenticated, Unauthenticated } from "convex/react"
+import { useQuery, useMutation, useAction, Authenticated, Unauthenticated } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { BadgeDisplay, BadgeProgression } from "@/components/badge-display"
 import { SubmissionStatusBadge } from "@/components/submission-status-badge"
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Building2, CheckCircle, XCircle } from "lucide-react"
 import type { Doc } from "@/convex/_generated/dataModel"
@@ -141,6 +141,92 @@ function SponsorInterestSection() {
     )
 }
 
+function RecommendedChallenges() {
+    const recommendations = useQuery(api.recommendations.getForCurrentUser)
+    const triggerGeneration = useAction(api.recommendations.triggerGeneration)
+    const [triggered, setTriggered] = useState(false)
+
+    // Trigger generation if no cached recommendations
+    useEffect(() => {
+        if (recommendations === null && !triggered) {
+            setTriggered(true)
+            triggerGeneration().catch(() => {})
+        }
+    }, [recommendations, triggered]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Still loading from Convex
+    if (recommendations === undefined) {
+        return (
+            <Card>
+                <CardHeader><CardTitle>Recommended For You</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                    <Skeleton className="h-16" />
+                    <Skeleton className="h-16" />
+                    <Skeleton className="h-16" />
+                </CardContent>
+            </Card>
+        )
+    }
+
+    // No recommendations (generating or no matches)
+    if (!recommendations || recommendations.length === 0) {
+        return (
+            <Card>
+                <CardHeader><CardTitle>Find Your Next Challenge</CardTitle></CardHeader>
+                <CardContent className="text-center py-6 space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                        {triggered
+                            ? "Generating personalized recommendations..."
+                            : "Complete your profile or connect GitHub to get matched."}
+                    </p>
+                    <Button asChild variant="outline">
+                        <Link href="/challenges">Browse Open Challenges</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <CardTitle>Recommended For You</CardTitle>
+                    <Badge variant="secondary" className="text-xs">AI Matched</Badge>
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                {recommendations.map((rec: any) => (
+                    <RecommendationCard key={rec.challengeId} rec={rec} />
+                ))}
+                <Button asChild variant="outline" size="sm" className="w-full">
+                    <Link href="/challenges">Browse All Challenges</Link>
+                </Button>
+            </CardContent>
+        </Card>
+    )
+}
+
+function RecommendationCard({ rec }: { rec: { challengeId: string; matchScore: number; reason: string } }) {
+    const challenge = useQuery(api.challenges.getById, { id: rec.challengeId as any })
+
+    if (!challenge) return <Skeleton className="h-16" />
+
+    return (
+        <Link href={`/challenges/${rec.challengeId}`} className="block">
+            <div className="flex items-center justify-between p-3 border rounded-card hover:border-brand-primary transition-brand cursor-pointer">
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{challenge.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{rec.reason}</p>
+                </div>
+                <Badge variant="outline" className="ml-3 shrink-0 font-mono text-xs">
+                    {rec.matchScore}%
+                </Badge>
+            </div>
+        </Link>
+    )
+}
+
 export default function DashboardPage() {
     const me = useQuery(api.users.getMe)
     const submissions = useQuery(api.submissions.listByUser)
@@ -188,6 +274,8 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
                     )}
+
+                    <RecommendedChallenges />
 
                     <SponsorInterestSection />
 
