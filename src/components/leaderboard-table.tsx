@@ -1,4 +1,5 @@
 "use client"
+import Link from "next/link"
 import { usePreloadedQuery } from "convex/react"
 import type { Preloaded } from "convex/react"
 import type { api } from "@/convex/_generated/api"
@@ -46,7 +47,7 @@ export function LeaderboardTable({ preloaded }: Props) {
                             <AvatarFallback>{user.name[0]}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                            <p className="font-semibold">{user.name}</p>
+                            <p className="font-semibold"><Link href={`/profile/${user._id}`} className="hover:underline">{user.name}</Link></p>
                             <div className="flex flex-wrap gap-1 mt-1">
                                 {user.badges.slice(0, 4).map((badge) => (
                                     <Badge
