@@ -3,7 +3,7 @@ import { api } from "@/convex/_generated/api"
 import { LeaderboardTable } from "@/components/leaderboard-table"
 
 export default async function LeaderboardPage() {
-    const preloaded = await preloadQuery(api.badges.leaderboard)
+    const preloaded = await preloadQuery(api.badges.leaderboard, { limit: 50 })
     return (
         <div className="space-y-6">
             <div>
