@@ -89,6 +89,16 @@ export const getById = internalQuery({
     handler: async (ctx, { submissionId }) => ctx.db.get(submissionId),
 });
 
+export const listByUserInternal = internalQuery({
+    args: { userId: v.id("users") },
+    handler: async (ctx, { userId }) => {
+        return ctx.db
+            .query("submissions")
+            .withIndex("by_user", (q) => q.eq("userId", userId))
+            .collect()
+    },
+})
+
 export const setProvisionalScore = internalMutation({
     args: {
         submissionId: v.id("submissions"),

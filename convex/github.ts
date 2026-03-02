@@ -1,7 +1,9 @@
-import { action, internalAction } from "./_generated/server"
+import { action, internalAction, ActionCtx } from "./_generated/server"
 import { v } from "convex/values"
 import { internal } from "./_generated/api"
-import { analyzeRepo as analyzeRepoImpl, listUserRepos } from "./lib/github"
+import { analyzeRepo as analyzeRepoImpl, listUserRepos, RepoAnalysis } from "./lib/github"
+import { z } from "zod"
+import type { User } from "./users"
 
 /**
  * Internal action that checks the 1hr cache before hitting the GitHub API.
@@ -12,9 +14,9 @@ export const analyzeRepoInternal = internalAction({
         owner: v.string(),
         repo: v.string(),
     },
-    handler: async (ctx, { owner, repo }) => {
+    handler: async (ctx: ActionCtx, { owner, repo }: { owner: string; repo: string }): Promise<RepoAnalysis> => {
         // Check cache first (1hr TTL enforced in getCached)
-        const cached = await ctx.runQuery(internal.githubCache.getCached, { owner, repo })
+        const cached: string | null = await ctx.runQuery(internal.githubCache.getCached, { owner, repo })
         if (cached) {
             return JSON.parse(cached)
         }
@@ -51,7 +53,7 @@ export const analyzeRepo = action({
         owner: v.string(),
         repo: v.string(),
     },
-    handler: async (ctx, { owner, repo }) => {
+    handler: async (ctx: ActionCtx, { owner, repo }: { owner: string; repo: string }): Promise<RepoAnalysis> => {
         return await ctx.runAction(internal.github.analyzeRepoInternal, { owner, repo })
     },
 })
@@ -60,10 +62,24 @@ export const analyzeRepo = action({
  * Analyzes a candidate's GitHub profile by examining their 10 most recent repos.
  * Produces a structured skill profile via Gemini and stores it on the user record.
  */
+/**
+ * Zod schema for validating Gemini-generated user skill profile
+ */
+const UserSkillProfileSchema = z.object({
+    primaryLanguages: z.array(z.string()),
+    frameworks: z.array(z.string()),
+    domains: z.array(z.string()),
+    experienceLevel: z.enum(["beginner", "intermediate", "advanced", "expert"]),
+    projectTypes: z.array(z.string()),
+    summary: z.string(),
+})
+
+type UserSkillProfile = z.infer<typeof UserSkillProfileSchema>
+
 export const analyzeUserProfile = internalAction({
     args: { userId: v.id("users") },
     handler: async (ctx, { userId }) => {
-        const user: any = await ctx.runQuery(internal.users.getById, { userId })
+        const user: User | null = await ctx.runQuery(internal.users.getById, { userId })
         if (!user?.githubUsername) {
             console.log("[github] No GitHub username for user, skipping profile analysis")
             return
@@ -71,8 +87,7 @@ export const analyzeUserProfile = internalAction({
 
         const token = process.env.GITHUB_TOKEN
         if (!token) {
-            console.error("[github] GITHUB_TOKEN not configured")
-            return
+            throw new Error("[github] GITHUB_TOKEN not configured — add to Convex environment variables")
         }
 
         // 1. Fetch 10 most recent repos
@@ -91,18 +106,19 @@ export const analyzeUserProfile = internalAction({
                         owner,
                         repo: name,
                     })
-                } catch {
+                } catch (error) {
+                    console.error(`[github] Failed to analyze repo ${repo.fullName}:`, error)
                     return null
                 }
             }),
         )
 
-        const validAnalyses = repoAnalyses.filter(Boolean)
+        const validAnalyses = repoAnalyses.filter(Boolean) as RepoAnalysis[]
         if (validAnalyses.length === 0) return
 
         // 3. Build summary for Gemini
-        const repoSummaries = validAnalyses.map((a: any, i: number) => {
-            const langs = a.metadata?.languages?.map((l: any) => l.name).join(", ") ?? "unknown"
+        const repoSummaries = validAnalyses.map((a, i) => {
+            const langs = a.metadata?.languages?.map((l: { name: string }) => l.name).join(", ") ?? "unknown"
             const deps = Object.keys(a.packageJson?.dependencies ?? {}).slice(0, 15).join(", ")
             const topics = a.metadata?.topics?.join(", ") ?? ""
             return `Repo ${i + 1}: ${a.metadata?.fullName ?? repos[i]?.fullName}
@@ -117,8 +133,7 @@ export const analyzeUserProfile = internalAction({
         const { GoogleGenerativeAI } = await import("@google/generative-ai")
         const apiKey = process.env.GEMINI_API_KEY
         if (!apiKey) {
-            console.error("[github] GEMINI_API_KEY not set")
-            return
+            throw new Error("[github] GEMINI_API_KEY not set — add to Convex environment variables")
         }
 
         const genAI = new GoogleGenerativeAI(apiKey)
@@ -148,7 +163,10 @@ Return ONLY valid JSON in this exact format:
             const result = await model.generateContent(prompt)
             const rawText = result.response.text().trim()
             const cleanedText = rawText.replace(/^```json/m, "").replace(/^```/m, "").trim()
-            const profile = JSON.parse(cleanedText)
+            const parsedProfile = JSON.parse(cleanedText)
+
+            // Validate the parsed profile against our schema
+            const profile: UserSkillProfile = UserSkillProfileSchema.parse(parsedProfile)
 
             // 5. Store on user record
             await ctx.runMutation(internal.users.setGithubProfile, {
@@ -159,6 +177,7 @@ Return ONLY valid JSON in this exact format:
             console.log(`[github] Profile analyzed for ${user.githubUsername}: ${profile.summary}`)
         } catch (error) {
             console.error("[github] Profile analysis failed:", error)
+            throw error
         }
     },
 })

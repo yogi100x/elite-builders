@@ -33,6 +33,16 @@ export const getByIdInternal = internalQuery({
     handler: async (ctx, { id }) => ctx.db.get(id),
 });
 
+export const listOpenInternal = internalQuery({
+    args: {},
+    handler: async (ctx) => {
+        return ctx.db
+            .query("challenges")
+            .withIndex("by_status", (q) => q.eq("status", "open"))
+            .collect()
+    },
+})
+
 export const listTopSix = query({
     args: {},
     handler: async (ctx) => {

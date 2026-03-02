@@ -1,3 +1,6 @@
+/// <reference types="node" />
+"use node"
+
 import { v } from "convex/values"
 import { internalAction } from "./_generated/server"
 import { internal } from "./_generated/api"
@@ -20,10 +23,10 @@ export const runTests = internalAction({
 
             // Clone repo and run tests
             await sandbox.commands.run(`git clone ${args.repoUrl} /app`)
-            await sandbox.commands.run("cd /app && npm install", { timeout: 60000 })
+            await sandbox.commands.run("cd /app && npm install", { timeoutMs: 60000 })
             const result = await sandbox.commands.run(
                 "cd /app && npm test -- --json 2>/dev/null || true",
-                { timeout: 120000 },
+                { timeoutMs: 120000 },
             )
 
             await sandbox.kill()
