@@ -58,6 +58,7 @@ export default defineSchema({
                 }),
             ),
         ),
+        assignedJudges: v.optional(v.array(v.id("users"))),
     })
         .index("by_sponsor", ["sponsorId"])
         .index("by_status", ["status"])
@@ -110,6 +111,16 @@ export default defineSchema({
         // Revision tracking
         version: v.optional(v.number()),
         previousSubmissionId: v.optional(v.id("submissions")),
+
+        // Test results
+        testResults: v.optional(
+            v.object({
+                passed: v.number(),
+                failed: v.number(),
+                total: v.number(),
+                details: v.optional(v.string()),
+            }),
+        ),
 
         // Judge override (human review)
         score: v.optional(v.number()),
