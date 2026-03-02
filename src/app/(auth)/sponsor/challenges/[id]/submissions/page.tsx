@@ -18,6 +18,12 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Id } from "@/convex/_generated/dataModel"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Download, ExternalLink, MessageSquare, Loader2 } from "lucide-react"
 import { STATUS_LABELS } from "@/lib/constants"
 import { toast } from "sonner"
@@ -120,15 +126,26 @@ export default function SponsorSubmissionsPage({ params }: { params: Promise<{ i
                     <h1 className="font-display text-2xl font-bold">Submissions</h1>
                     <p className="text-muted-foreground">{submissions.length} total</p>
                 </div>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => window.open(`/api/sponsor/download-packet?challengeId=${id}`, "_blank")}
-                >
-                    <Download size={14} />
-                    Download Candidate Packets
-                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2">
+                            <Download size={14} />
+                            Download Packets
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem
+                            onClick={() => window.open(`/api/sponsor/download-packet?challengeId=${id}&format=json`, "_blank")}
+                        >
+                            JSON Format
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => window.open(`/api/sponsor/download-packet?challengeId=${id}&format=html`, "_blank")}
+                        >
+                            HTML (Print to PDF)
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
             <div className="border rounded-card divide-y">
