@@ -48,3 +48,9 @@ next-env.d.ts
 .claude/skills/
 .claude/agents/
 
+2026-03-01-elitebuilders-competition-platform-design.md
+2026-03-01-elitebuilders-implementation-plan.md
+gaps.md
+
+docs/plans/*
+docs/*
