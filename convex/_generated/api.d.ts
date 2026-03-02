@@ -16,6 +16,8 @@ import type * as email from "../email.js";
 import type * as github from "../github.js";
 import type * as invites from "../invites.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_email from "../lib/email.js";
+import type * as lib_github from "../lib/github.js";
 import type * as notifications from "../notifications.js";
 import type * as seed from "../seed.js";
 import type * as sponsors from "../sponsors.js";
@@ -37,6 +39,8 @@ declare const fullApi: ApiFromModules<{
   github: typeof github;
   invites: typeof invites;
   "lib/auth": typeof lib_auth;
+  "lib/email": typeof lib_email;
+  "lib/github": typeof lib_github;
   notifications: typeof notifications;
   seed: typeof seed;
   sponsors: typeof sponsors;

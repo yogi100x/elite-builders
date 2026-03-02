@@ -105,87 +105,273 @@ export const seedChallenges = internalMutation({
         if (!sponsor2Id) throw new Error("Could not create sponsor 2");
 
         // Create 6 challenges: 1-3 for BuildFast Inc, 4-6 for Acme Corp
+        const now = Date.now();
+        const oneDay = 24 * 60 * 60 * 1000;
+
         const challengeDefinitions = [
             {
                 title: "Build an AI Code Reviewer",
-                summary: "Create a tool that reviews PRs using an LLM and posts structured feedback.",
+                summary: "Create a tool that reviews PRs using an LLM and posts structured feedback as inline comments.",
                 difficulty: "advanced" as const,
                 tags: ["AI", "developer-tools", "LLM"],
                 prize: "$2,000 + Badge",
-                overview: "Detailed overview...",
-                problemStatement: "Detailed problem statement...",
+                overview: `We're looking for developers to build an intelligent code review tool that integrates with GitHub Pull Requests. The tool should analyze diffs, understand context from the broader codebase, and post helpful, structured feedback as inline PR comments.
+
+This is a real problem we face at BuildFast — our engineering team spends 30% of their time on code reviews, and much of that is catching patterns that an LLM could flag automatically. The winning submission will ship as an internal tool.
+
+**What we're looking for:**
+- GitHub App or Action that triggers on PR events
+- LLM-powered analysis of code diffs with context awareness
+- Structured feedback posted as inline comments (not just a wall of text)
+- Support for at least 3 languages (TypeScript, Python, Go)
+- Configurable review rules (security, performance, style)`,
+                problemStatement: `Build a GitHub integration that automatically reviews Pull Requests using a Large Language Model. Your solution must:
+
+1. **Trigger on PR events** — new PR, updated PR, or review requested
+2. **Analyze the diff** — parse changed files, understand additions/deletions in context
+3. **Generate structured feedback** — produce per-file, per-line comments with severity levels (info, warning, error)
+4. **Post as inline comments** — use the GitHub API to post review comments at specific line positions
+5. **Be configurable** — allow repo owners to set rules, ignored paths, and review focus areas via a config file
+
+**Evaluation criteria:**
+- Quality and relevance of generated feedback (40%)
+- Code architecture and maintainability (25%)
+- GitHub integration robustness (20%)
+- Documentation and setup experience (15%)
+
+**Constraints:**
+- Must work with any OpenAI-compatible API (OpenAI, Anthropic, local models)
+- Must handle repos up to 10,000 lines changed per PR
+- Must complete review within 60 seconds for typical PRs`,
                 sponsorId: sponsor1Id,
+                deadline: now + 14 * oneDay, // 2 weeks
             },
             {
                 title: "Real-Time Collaboration Editor",
-                summary: "Build a Google Docs-style collaborative text editor with OT or CRDTs.",
+                summary: "Build a Google Docs-style collaborative text editor with CRDTs, rich text, and live cursors.",
                 difficulty: "expert" as const,
                 tags: ["real-time", "algorithms", "collaboration"],
                 prize: "$3,000 + Badge",
-                overview: "Detailed overview...",
-                problemStatement: "Detailed problem statement...",
+                overview: `Collaborative editing is one of the hardest problems in distributed systems. We want you to build a real-time collaborative text editor that multiple users can edit simultaneously — think Google Docs, but open source and self-hostable.
+
+This challenge tests your understanding of conflict-free replicated data types (CRDTs), WebSocket communication, rich text editing, and presence awareness. The winning submission will demonstrate mastery of distributed systems fundamentals.
+
+**What we're looking for:**
+- Rich text editing (bold, italic, headings, lists, code blocks)
+- Real-time collaboration with < 100ms perceived latency
+- Live cursor and selection indicators for each collaborator
+- Offline support with automatic sync on reconnection
+- Clean, well-documented architecture`,
+                problemStatement: `Build a collaborative rich text editor that supports real-time multi-user editing. Your solution must:
+
+1. **Rich text support** — bold, italic, headings (H1-H3), bullet/numbered lists, code blocks, and links
+2. **Real-time sync** — changes from any user appear on all other users' screens within 100ms on LAN
+3. **Conflict resolution** — use CRDTs (Yjs, Automerge) or OT to handle concurrent edits without data loss
+4. **Presence indicators** — show each user's cursor position and selection with a unique color and name label
+5. **Offline resilience** — queue changes when disconnected, merge cleanly on reconnection
+
+**Evaluation criteria:**
+- Correctness of conflict resolution under concurrent edits (35%)
+- Quality of the editing experience and rich text support (25%)
+- Architecture and code quality (20%)
+- Performance with 10+ concurrent users (10%)
+- Documentation and demo quality (10%)
+
+**Constraints:**
+- Must use WebSockets (not polling) for real-time communication
+- Must handle documents up to 50,000 words
+- Frontend must work in Chrome, Firefox, and Safari
+- No Firebase or other managed real-time databases — build the sync layer yourself`,
                 sponsorId: sponsor1Id,
+                deadline: now + 45 * oneDay, // 6.5 weeks
             },
             {
                 title: "Accessibility Audit Dashboard",
-                summary: "Design a WCAG audit tool with visual score breakdowns and fix suggestions.",
+                summary: "Design a WCAG audit tool with visual score breakdowns, trend tracking, and actionable fix suggestions.",
                 difficulty: "intermediate" as const,
                 tags: ["design", "accessibility", "UX"],
                 prize: "$1,500 + Badge",
-                overview: "Detailed overview...",
-                problemStatement: "Detailed problem statement...",
+                overview: `Web accessibility is a legal requirement and a moral imperative, yet most teams don't have visibility into their compliance status. We want a dashboard that scans websites, generates WCAG compliance reports, and provides actionable guidance.
+
+BuildFast serves enterprise clients who require WCAG 2.1 AA compliance. We need a tool our QA team can use to audit pages, track compliance over time, and generate reports for stakeholders.
+
+**What we're looking for:**
+- URL-based scanning with WCAG 2.1 AA/AAA rule checks
+- Visual score breakdown by category (perceivable, operable, understandable, robust)
+- Issue list with severity, affected element, and fix suggestion
+- Historical trend tracking (score over time)
+- Export to PDF or CSV for stakeholder reports`,
+                problemStatement: `Build a web accessibility audit dashboard. Your solution must:
+
+1. **URL scanning** — accept a URL, crawl the page, and run automated WCAG 2.1 checks
+2. **Score breakdown** — display an overall accessibility score (0-100) with category-level breakdowns
+3. **Issue details** — list each violation with its WCAG criterion, severity (critical/serious/moderate/minor), the affected HTML element, and a plain-English fix suggestion
+4. **Trend tracking** — store scan history and show a line chart of score changes over time
+5. **Beautiful UI** — the dashboard itself must be fully accessible (practice what you preach)
+
+**Evaluation criteria:**
+- Accuracy and coverage of WCAG rule checks (30%)
+- Quality of fix suggestions and developer experience (25%)
+- UI/UX design and data visualization (25%)
+- Accessibility of the dashboard itself (20%)
+
+**Constraints:**
+- Use axe-core, Lighthouse, or Pa11y as the scanning engine (don't reinvent the wheel)
+- Must handle pages with JavaScript-rendered content (SPA support)
+- Dashboard must score 95+ on its own audit
+- Must work for at least 5 pages per scan`,
                 sponsorId: sponsor1Id,
+                deadline: now + 21 * oneDay, // 3 weeks
             },
             {
                 title: "CLI Task Manager with AI",
-                summary: "Build a terminal-native task manager that uses AI to prioritize and estimate.",
+                summary: "Build a terminal-native task manager that uses AI to auto-prioritize, estimate effort, and suggest next actions.",
                 difficulty: "beginner" as const,
                 tags: ["CLI", "AI", "productivity"],
                 prize: "$500 + Badge",
-                overview: "Detailed overview...",
-                problemStatement: "Detailed problem statement...",
+                overview: `We believe the best productivity tools meet developers where they already work — the terminal. Build a CLI task manager that goes beyond simple todo lists by using AI to help developers prioritize their work and estimate time.
+
+This is a beginner-friendly challenge, but don't let that fool you — a polished CLI tool with thoughtful AI integration can be incredibly impressive. We want something developers would actually install and use daily.
+
+**What we're looking for:**
+- Fast, responsive terminal UI (TUI) or clean command-line interface
+- Task CRUD with projects, tags, priorities, and due dates
+- AI-powered features: auto-prioritization, effort estimation, or smart suggestions
+- Local-first data storage (SQLite, JSON, or similar)
+- Thoughtful UX: keyboard shortcuts, color coding, tab completion`,
+                problemStatement: `Build a CLI task manager with AI-powered features. Your solution must:
+
+1. **Task management** — create, list, update, complete, and delete tasks with title, description, priority, tags, and due date
+2. **Project organization** — group tasks into projects, filter and sort by any field
+3. **AI integration** — at least ONE of the following:
+   - Auto-prioritize tasks based on due date, dependencies, and context
+   - Estimate effort/time for tasks based on description
+   - Suggest what to work on next based on current context
+4. **Persistent storage** — tasks survive terminal restarts (use SQLite, JSON file, etc.)
+5. **Good DX** — helpful error messages, --help flags, and ideally shell completions
+
+**Evaluation criteria:**
+- Usefulness and daily-driver potential (30%)
+- Quality of AI integration (25%)
+- Code quality and project structure (25%)
+- Documentation and ease of installation (20%)
+
+**Constraints:**
+- Must be installable via npm, pip, cargo, or go install (one command)
+- Must work on macOS and Linux
+- AI features must work with at least one free API (OpenAI free tier, Ollama, etc.)
+- Response time for non-AI commands must be under 200ms`,
                 sponsorId: sponsor2Id,
+                deadline: now + 10 * oneDay, // 10 days
             },
             {
                 title: "AI-Powered Resume Parser",
-                summary: "Parse unstructured resumes into structured JSON with skill + experience extraction.",
+                summary: "Parse unstructured resumes (PDF/DOCX) into structured JSON with skill extraction, experience mapping, and confidence scores.",
                 difficulty: "intermediate" as const,
                 tags: ["AI", "NLP", "data"],
                 prize: "$1,000 + Badge",
-                overview: "Detailed overview...",
-                problemStatement: "Detailed problem statement...",
+                overview: `Acme Corp processes thousands of resumes monthly. Our recruiters waste hours manually extracting information from inconsistently formatted documents. We need an AI-powered parser that can turn any resume into clean, structured data.
+
+The key challenge is handling the massive variety of resume formats — multi-column layouts, creative designs, international formats, and various file types. Your parser should handle them all gracefully.
+
+**What we're looking for:**
+- PDF and DOCX file upload support
+- Structured JSON output with contact info, education, experience, skills, and certifications
+- Confidence scores for each extracted field
+- Handling of non-standard layouts (multi-column, creative, international)
+- Batch processing capability`,
+                problemStatement: `Build an AI-powered resume parser that converts unstructured resumes into structured JSON. Your solution must:
+
+1. **File support** — accept PDF and DOCX files, handle scanned PDFs (OCR)
+2. **Structured extraction** — output JSON with these fields:
+   - Contact: name, email, phone, location, LinkedIn, GitHub
+   - Experience: array of {company, title, startDate, endDate, description, skills_used}
+   - Education: array of {institution, degree, field, graduationDate, GPA}
+   - Skills: array of {name, category, proficiency_level}
+   - Certifications: array of {name, issuer, date}
+3. **Confidence scores** — each extracted field should have a 0-1 confidence score
+4. **Batch API** — support processing multiple resumes via a REST API endpoint
+5. **Accuracy** — achieve 85%+ extraction accuracy on a provided test set of 20 resumes
+
+**Evaluation criteria:**
+- Extraction accuracy across diverse resume formats (40%)
+- Code architecture and API design (25%)
+- Handling of edge cases (gaps, international formats, creative layouts) (20%)
+- Documentation and test coverage (15%)
+
+**Constraints:**
+- Must use an LLM for extraction (not regex-based)
+- Must process a single resume in under 10 seconds
+- Must handle resumes in English (bonus: other languages)
+- API must return valid JSON conforming to the provided schema`,
                 sponsorId: sponsor2Id,
+                deadline: now + 30 * oneDay, // 1 month
             },
             {
                 title: "Design System Tokenizer",
-                summary: "Build a Figma plugin that exports design tokens to Tailwind/CSS variables.",
+                summary: "Build a Figma plugin that extracts design tokens and exports them to Tailwind config, CSS custom properties, and SCSS variables.",
                 difficulty: "advanced" as const,
                 tags: ["design", "developer-tools", "Figma"],
                 prize: "$2,500 + Badge",
-                overview: "Detailed overview...",
-                problemStatement: "Detailed problem statement...",
+                overview: `The gap between design and code is one of the biggest sources of friction in product development. Designers define colors, spacing, typography, and shadows in Figma — but developers have to manually translate those into code. This challenge is about bridging that gap automatically.
+
+Acme Corp maintains a design system used by 12 product teams. Every time our design team updates tokens in Figma, developers spend days updating code. We want a Figma plugin that exports tokens directly to the formats our engineers use.
+
+**What we're looking for:**
+- Figma plugin that reads styles, variables, and components
+- Export to multiple formats: Tailwind config, CSS custom properties, SCSS variables
+- Preview panel showing generated code before export
+- Diff view showing what changed since last export
+- Support for theming (light/dark mode token sets)`,
+                problemStatement: `Build a Figma plugin that extracts design tokens and exports them to developer-ready formats. Your solution must:
+
+1. **Token extraction** — read from Figma:
+   - Colors (fills, strokes) → color tokens
+   - Text styles (font family, size, weight, line height) → typography tokens
+   - Effects (shadows, blurs) → shadow tokens
+   - Spacing (auto layout gaps and padding) → spacing tokens
+2. **Multi-format export** — generate valid output for:
+   - Tailwind CSS config (tailwind.config.js theme extension)
+   - CSS custom properties (:root { --color-primary: ... })
+   - SCSS variables ($color-primary: ...)
+3. **Preview panel** — show generated code in-plugin before exporting
+4. **Change detection** — highlight tokens that changed since last export
+5. **Theme support** — handle light/dark mode as separate token sets
+
+**Evaluation criteria:**
+- Completeness of token extraction (30%)
+- Quality of generated code output (25%)
+- Plugin UX and preview experience (25%)
+- Architecture and extensibility (20%)
+
+**Constraints:**
+- Must use the Figma Plugin API (not REST API)
+- Must handle files with 500+ styles without crashing
+- Generated Tailwind config must be valid and directly usable
+- Must work with Figma's new Variables feature (not just legacy styles)`,
                 sponsorId: sponsor2Id,
+                deadline: now + 60 * oneDay, // 2 months
             },
         ];
 
-        const now = Date.now();
-        const oneMonth = 30 * 24 * 60 * 60 * 1000;
         const challengeIds: Id<"challenges">[] = [];
 
-        for (const { sponsorId, ...challenge } of challengeDefinitions) {
+        for (const { sponsorId, deadline, ...challenge } of challengeDefinitions) {
             const existing = await ctx.db
                 .query("challenges")
-                .withSearchIndex("search_challenges", (q) => q.search("title", challenge.title))
+                .filter((q) => q.eq(q.field("title"), challenge.title))
                 .first();
 
             if (existing) {
+                // Update existing challenge with new content
+                await ctx.db.patch(existing._id, { ...challenge, deadline });
                 challengeIds.push(existing._id);
             } else {
                 const id = await ctx.db.insert("challenges", {
                     ...challenge,
                     sponsorId,
                     status: "open",
-                    deadline: now + oneMonth,
+                    deadline,
                 });
                 challengeIds.push(id);
             }

@@ -63,8 +63,8 @@ export const scoreSubmission = internalAction({
 
         const genAI = new GoogleGenerativeAI(apiKey)
         // Model configurable via env var — swap without redeploy if preview model is deprecated
-        const scoringModel = process.env.GEMINI_SCORING_MODEL ?? "gemini-2.5-flash"
-        const fallbackModel = process.env.GEMINI_FALLBACK_MODEL ?? "gemini-2.0-flash"
+        const scoringModel = process.env.GEMINI_SCORING_MODEL ?? "gemini-3-flash"
+        const fallbackModel = process.env.GEMINI_FALLBACK_MODEL ?? "gemini-2.5-flash"
         const model = genAI.getGenerativeModel({ model: scoringModel })
 
         const prompt = `

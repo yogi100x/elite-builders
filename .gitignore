@@ -43,4 +43,8 @@ next-env.d.ts
 # clerk configuration (can include secrets)
 /.clerk/
 
+#claude
+.claude/    
+.claude/skills/
+.claude/agents/
 
