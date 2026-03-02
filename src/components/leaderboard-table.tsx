@@ -11,6 +11,7 @@ interface Props {
         profileImageUrl?: string;
         points: number;
         badges: Array<{ _id: string; name: string; color: string }>;
+        skills?: string[];
     }>;
     rankOffset?: number;
 }
@@ -63,6 +64,15 @@ export function LeaderboardTable({ entries, rankOffset = 0 }: Props) {
                                     </Badge>
                                 ))}
                             </div>
+                            {user.skills && user.skills.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                    {user.skills.slice(0, 3).map((skill) => (
+                                        <Badge key={skill} variant="outline" className="text-[10px]">
+                                            {skill}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <span className="font-mono font-bold text-brand-primary">{user.points} pts</span>
                     </div>
