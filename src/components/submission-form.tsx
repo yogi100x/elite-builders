@@ -30,7 +30,7 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-export function SubmissionForm({ challengeId }: { challengeId: Id<"challenges"> }) {
+export function SubmissionForm({ challengeId, templateRepoUrl }: { challengeId: Id<"challenges">; templateRepoUrl?: string }) {
     const router = useRouter()
     const createSubmission = useMutation(api.submissions.create)
     const generateUploadUrl = useMutation(api.submissions.generateUploadUrl)
@@ -130,6 +130,26 @@ export function SubmissionForm({ challengeId }: { challengeId: Id<"challenges"> 
                                 </Badge>
                             )}
                         </div>
+                    </div>
+                )}
+
+                {templateRepoUrl && (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+                        <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                            This challenge has a template repository
+                        </p>
+                        <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
+                            Fork the template below and build your solution on top of it.
+                        </p>
+                        <a
+                            href={templateRepoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-blue-700 hover:text-blue-900 dark:text-blue-300 dark:hover:text-blue-100"
+                        >
+                            <Github size={14} />
+                            View Template Repository
+                        </a>
                     </div>
                 )}
 

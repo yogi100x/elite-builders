@@ -3,7 +3,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
-import { Home, Trophy, LayoutDashboard, Briefcase, Gavel, Menu } from "lucide-react"
+import { Home, Trophy, LayoutDashboard, Briefcase, Gavel, Menu, Shield } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", authRequired: true },
     { href: "/sponsor", icon: Briefcase, label: "Sponsor", role: "sponsor" },
     { href: "/judge", icon: Gavel, label: "Judge", role: "judge" },
+    { href: "/admin/invites", icon: Shield, label: "Admin", role: "admin" },
 ]
 
 export function Sidebar() {

@@ -32,6 +32,8 @@ const schema = z.object({
     prize: z.string().min(1),
     deadlineDays: z.coerce.number().min(1).max(365),
     dataPackUrl: z.string().url("Must be a valid URL").or(z.literal("")),
+    templateRepoUrl: z.string().url("Must be a valid URL").or(z.literal("")),
+    testRunCommand: z.string().or(z.literal("")),
     rubricCriteria: z.array(rubricCriterionSchema),
 })
 
@@ -40,8 +42,10 @@ type FormValues = z.infer<typeof schema>
 export default function NewChallengePage() {
     const router = useRouter()
     const createChallenge = useMutation(api.challenges.create)
+    const generateUploadUrl = useMutation(api.challenges.generateUploadUrl)
     const judges = useQuery(api.users.listJudges)
     const [selectedJudges, setSelectedJudges] = useState<Id<"users">[]>([])
+    const [hiddenTestFiles, setHiddenTestFiles] = useState<File[]>([])
 
     const form = useForm<FormValues>({
         resolver: zodResolver(schema) as any,
@@ -55,6 +59,8 @@ export default function NewChallengePage() {
             prize: "",
             deadlineDays: 30,
             dataPackUrl: "",
+            templateRepoUrl: "",
+            testRunCommand: "",
             rubricCriteria: [],
         },
     })
@@ -71,7 +77,36 @@ export default function NewChallengePage() {
             const rubricCriteria = values.rubricCriteria.length > 0 ? values.rubricCriteria : undefined
             const dataPackUrl = values.dataPackUrl || undefined
             const assignedJudges = selectedJudges.length > 0 ? selectedJudges : undefined
-            await createChallenge({ ...values, deadline, tags, rubricCriteria, dataPackUrl, assignedJudges })
+            const templateRepoUrl = values.templateRepoUrl || undefined
+            const testRunCommand = values.testRunCommand || undefined
+
+            // Upload hidden test files to Convex storage
+            let hiddenTestFileIds: Id<"_storage">[] | undefined
+            if (hiddenTestFiles.length > 0) {
+                hiddenTestFileIds = []
+                for (const file of hiddenTestFiles) {
+                    const uploadUrl = await generateUploadUrl()
+                    const res = await fetch(uploadUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": file.type },
+                        body: file,
+                    })
+                    const { storageId } = await res.json()
+                    hiddenTestFileIds.push(storageId)
+                }
+            }
+
+            await createChallenge({
+                ...values,
+                deadline,
+                tags,
+                rubricCriteria,
+                dataPackUrl,
+                assignedJudges,
+                templateRepoUrl,
+                hiddenTestFileIds,
+                testRunCommand,
+            })
             toast.success("Challenge created!")
             router.push("/sponsor")
         } catch (err) {
@@ -121,6 +156,54 @@ export default function NewChallengePage() {
                     <FormField control={form.control} name="dataPackUrl" render={({ field }) => (
                         <FormItem><FormLabel>Data Pack URL (optional)</FormLabel><FormControl><Input placeholder="https://example.com/data-pack.zip" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
+
+                    <FormField control={form.control} name="templateRepoUrl" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Template Repo URL (optional)</FormLabel>
+                            <FormControl>
+                                <Input placeholder="https://github.com/your-org/challenge-template" {...field} />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">
+                                Candidates will fork this repo as their starting point. Include visible test files here.
+                            </p>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+
+                    <FormField control={form.control} name="testRunCommand" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Test Run Command (optional)</FormLabel>
+                            <FormControl>
+                                <Input placeholder="npm test" {...field} />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">
+                                Custom command to run tests in the sandbox. Defaults to &quot;npm test&quot; if empty.
+                            </p>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Hidden Test Files (optional)</label>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="file"
+                                multiple
+                                accept=".js,.ts,.jsx,.tsx"
+                                onChange={(e) => {
+                                    if (e.target.files) {
+                                        setHiddenTestFiles(Array.from(e.target.files))
+                                    }
+                                }}
+                            />
+                        </div>
+                        {hiddenTestFiles.length > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                                {hiddenTestFiles.length} file(s) selected. These will be injected into __tests__/hidden/ during scoring.
+                            </p>
+                        )}
+                    </div>
+
                     <FormField control={form.control} name="tags" render={({ field }) => (
                         <FormItem><FormLabel>Tags (comma-separated)</FormLabel><FormControl><Input placeholder="AI, developer-tools, LLM" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />

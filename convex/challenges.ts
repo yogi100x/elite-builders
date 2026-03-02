@@ -102,6 +102,9 @@ export const create = mutation({
         dataPackUrl: v.optional(v.string()),
         season: v.optional(v.string()),
         assignedJudges: v.optional(v.array(v.id("users"))),
+        templateRepoUrl: v.optional(v.string()),
+        hiddenTestFileIds: v.optional(v.array(v.id("_storage"))),
+        testRunCommand: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const caller = await requireAuth(ctx, "sponsor");
@@ -121,10 +124,23 @@ export const create = mutation({
             }
         }
 
+        // Parse template repo URL into owner/name
+        let templateRepoOwner: string | undefined;
+        let templateRepoName: string | undefined;
+        if (args.templateRepoUrl) {
+            const match = args.templateRepoUrl.match(/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(?:\/|$)/);
+            if (match) {
+                templateRepoOwner = match[1];
+                templateRepoName = match[2];
+            }
+        }
+
         return ctx.db.insert("challenges", {
             ...args,
             sponsorId: sponsor._id,
             status: "open",
+            templateRepoOwner,
+            templateRepoName,
         });
     },
 });
@@ -260,6 +276,9 @@ export const saveDraft = mutation({
         prize: v.optional(v.string()),
         deadline: v.optional(v.number()),
         season: v.optional(v.string()),
+        templateRepoUrl: v.optional(v.string()),
+        hiddenTestFileIds: v.optional(v.array(v.id("_storage"))),
+        testRunCommand: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const caller = await requireAuth(ctx, "sponsor");
@@ -342,5 +361,13 @@ export const createPlatformChallenge = mutation({
             status: "open",
             ...args,
         });
+    },
+});
+
+export const generateUploadUrl = mutation({
+    args: {},
+    handler: async (ctx) => {
+        await requireAuth(ctx, "sponsor");
+        return ctx.storage.generateUploadUrl();
     },
 });

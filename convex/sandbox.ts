@@ -9,6 +9,7 @@ export const runTests = internalAction({
     args: {
         submissionId: v.id("submissions"),
         repoUrl: v.string(),
+        challengeId: v.optional(v.id("challenges")),
     },
     handler: async (ctx, args) => {
         const apiKey = process.env.E2B_API_KEY
@@ -21,17 +22,46 @@ export const runTests = internalAction({
             const { Sandbox } = await import("e2b")
             const sandbox = await Sandbox.create({ apiKey })
 
-            // Clone repo and run tests
+            // 1. Clone candidate repo
             await sandbox.commands.run(`git clone ${args.repoUrl} /app`)
+
+            // 2. Look up challenge config (hidden tests + custom test command)
+            let testCommand = "npm test"
+            if (args.challengeId) {
+                const challenge = await ctx.runQuery(internal.challenges.getByIdInternal, { id: args.challengeId })
+                if (challenge) {
+                    if (challenge.testRunCommand) {
+                        testCommand = challenge.testRunCommand
+                    }
+                    if (challenge.hiddenTestFileIds && challenge.hiddenTestFileIds.length > 0) {
+                        await sandbox.commands.run("mkdir -p /app/__tests__/hidden")
+                        for (let i = 0; i < challenge.hiddenTestFileIds.length; i++) {
+                            const fileUrl = await ctx.runQuery(internal.submissions.getStorageUrl, {
+                                storageId: challenge.hiddenTestFileIds[i],
+                            })
+                            if (fileUrl) {
+                                await sandbox.commands.run(
+                                    `curl -sL "${fileUrl}" -o /app/__tests__/hidden/hidden_test_${i}.test.js`
+                                )
+                            }
+                        }
+                        console.log(`[sandbox] Injected ${challenge.hiddenTestFileIds.length} hidden test files`)
+                    }
+                }
+            }
+
+            // 3. Install dependencies
             await sandbox.commands.run("cd /app && npm install", { timeoutMs: 60000 })
+
+            // 5. Run tests
             const result = await sandbox.commands.run(
-                "cd /app && npm test -- --json 2>/dev/null || true",
+                `cd /app && ${testCommand} -- --json 2>/dev/null || true`,
                 { timeoutMs: 120000 },
             )
 
             await sandbox.kill()
 
-            // Parse test results
+            // 6. Parse test results
             let testResults = { passed: 0, failed: 0, total: 0, details: "" }
             try {
                 const jsonOutput = JSON.parse(result.stdout)
@@ -42,11 +72,10 @@ export const runTests = internalAction({
                     details: result.stdout.slice(0, 2000),
                 }
             } catch {
-                // Non-JSON output — just capture stdout
                 testResults.details = result.stdout.slice(0, 2000)
             }
 
-            // Store results on submission
+            // 7. Store results
             await ctx.runMutation(internal.submissions.setTestResults, {
                 submissionId: args.submissionId,
                 testResults,

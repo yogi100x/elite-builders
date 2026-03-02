@@ -49,7 +49,7 @@ export const countUnread = query({
 export const createInternal = internalMutation({
     args: {
         userId: v.id("users"),
-        type: v.union(v.literal("submission"), v.literal("award"), v.literal("not-selected")),
+        type: v.union(v.literal("submission"), v.literal("award"), v.literal("not-selected"), v.literal("engagement")),
         content: v.string(),
         relatedId: v.optional(v.string()),
     },

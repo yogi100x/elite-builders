@@ -56,7 +56,7 @@ export default function SubmitPage({ params }: { params: Promise<{ id: string }>
                 </Card>
             )}
 
-            <SubmissionForm challengeId={challengeId} />
+            <SubmissionForm challengeId={challengeId} templateRepoUrl={challenge?.templateRepoUrl} />
         </div>
     )
 }

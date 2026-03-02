@@ -1,7 +1,7 @@
 import { internalAction } from "./_generated/server"
 import { v } from "convex/values"
 import { internal } from "./_generated/api"
-import { sendAwardEmail, sendRejectionEmail, sendSponsorInterestEmail, sendScoringEmail, sendWeeklyDigestEmail } from "./lib/email"
+import { sendAwardEmail, sendRejectionEmail, sendSponsorInterestEmail, sendScoringEmail, sendWeeklyDigestEmail, sendApplicationApprovalEmail, sendApplicationRejectionEmail, sendInviteEmail } from "./lib/email"
 
 export const sendAward = internalAction({
     args: {
@@ -57,6 +57,37 @@ export const sendScoring = internalAction({
         const prefs = internalUser.emailPreferences
         if (prefs && !prefs.scoringNotifications) return
         await sendScoringEmail(internalUser.email, internalUser.name, args.challengeTitle, args.provisionalScore)
+    },
+})
+
+export const sendApplicationApproval = internalAction({
+    args: { userId: v.id("users") },
+    handler: async (ctx, args) => {
+        const user: any = await ctx.runQuery(internal.users.getById, { userId: args.userId })
+        if (!user) return
+        await sendApplicationApprovalEmail(user.email, user.name)
+    },
+})
+
+export const sendApplicationRejection = internalAction({
+    args: { userId: v.id("users"), reason: v.string() },
+    handler: async (ctx, args) => {
+        const user: any = await ctx.runQuery(internal.users.getById, { userId: args.userId })
+        if (!user) return
+        await sendApplicationRejectionEmail(user.email, user.name, args.reason)
+    },
+})
+
+export const sendInvite = internalAction({
+    args: {
+        email: v.string(),
+        role: v.string(),
+        orgName: v.optional(v.string()),
+        inviteLink: v.string(),
+        adminName: v.string(),
+    },
+    handler: async (ctx, args) => {
+        await sendInviteEmail(args.email, args.role, args.orgName ?? null, args.inviteLink, args.adminName)
     },
 })
 

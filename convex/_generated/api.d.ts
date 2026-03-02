@@ -26,6 +26,7 @@ import type * as notifications from "../notifications.js";
 import type * as recommendations from "../recommendations.js";
 import type * as sandbox from "../sandbox.js";
 import type * as seed from "../seed.js";
+import type * as sponsorApplications from "../sponsorApplications.js";
 import type * as sponsors from "../sponsors.js";
 import type * as submissions from "../submissions.js";
 import type * as users from "../users.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   recommendations: typeof recommendations;
   sandbox: typeof sandbox;
   seed: typeof seed;
+  sponsorApplications: typeof sponsorApplications;
   sponsors: typeof sponsors;
   submissions: typeof submissions;
   users: typeof users;

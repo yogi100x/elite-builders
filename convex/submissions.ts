@@ -368,6 +368,13 @@ export const getFileUrls = query({
     },
 });
 
+export const getStorageUrl = internalQuery({
+    args: { storageId: v.id("_storage") },
+    handler: async (ctx, { storageId }) => {
+        return ctx.storage.getUrl(storageId);
+    },
+});
+
 export const listAwardedByChallenge = internalQuery({
     args: { challengeId: v.id("challenges") },
     handler: async (ctx, { challengeId }) => {

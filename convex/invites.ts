@@ -36,8 +36,16 @@ export const create = mutation({
             createdBy: user._id,
         });
 
-        // In a real app, you would dispatch an email here via Resend/SendGrid
-        // For now, the UI will display the link so the Admin can share it directly.
+        // Auto-send invite email
+        const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
+        const inviteLink = `${siteUrl}/invite/${token}`;
+        await ctx.scheduler.runAfter(0, internal.email.sendInvite, {
+            email: args.email,
+            role: args.role,
+            orgName: args.orgName,
+            inviteLink,
+            adminName: user.name,
+        });
 
         return token;
     },

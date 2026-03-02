@@ -11,6 +11,8 @@ async function sendEmail(to: string, subject: string, html: string) {
         return;
     }
 
+    const fromAddress = process.env.EMAIL_FROM_ADDRESS ?? "EliteBuilders <noreply@m.swifthyre.com>";
+
     const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -18,7 +20,7 @@ async function sendEmail(to: string, subject: string, html: string) {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            from: "EliteBuilders <noreply@elitebuilders.com>",
+            from: fromAddress,
             to,
             subject,
             html,
@@ -146,4 +148,58 @@ export async function sendWeeklyDigestEmail(
         <p style="color: #374151;">Keep building!</p>
     `;
     await sendEmail(to, "Your Weekly EliteBuilders Digest", emailTemplate("Weekly Digest", body));
+}
+
+export async function sendApplicationApprovalEmail(to: string, name: string): Promise<void> {
+    const body = `
+        <p style="color: #374151;">Hi ${name},</p>
+        <p style="color: #374151;">Congratulations! Your EliteBuilders sponsor application has been approved.</p>
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+            <p style="margin: 0; font-size: 14px; color: #166534;">
+                <strong>Your sponsor account is now active!</strong> You can start creating challenges for candidates to solve.
+            </p>
+        </div>
+        <p style="color: #374151;">Head to your Sponsor Dashboard to create your first challenge and start discovering top talent.</p>
+        <p style="color: #374151;">Welcome aboard!</p>
+    `;
+    await sendEmail(to, "Your EliteBuilders Sponsor Application has been Approved!", emailTemplate("Application Approved!", body));
+}
+
+export async function sendApplicationRejectionEmail(to: string, name: string, reason: string): Promise<void> {
+    const body = `
+        <p style="color: #374151;">Hi ${name},</p>
+        <p style="color: #374151;">Thank you for applying to become a sponsor on EliteBuilders. After reviewing your application, we have an update for you.</p>
+        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0;">
+            <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                <strong>Reason:</strong> ${reason}
+            </p>
+        </div>
+        <p style="color: #374151;">We encourage you to address the feedback above and reapply in the future. If you have questions, feel free to reach out to our team.</p>
+        <p style="color: #374151;">Thank you for your interest in EliteBuilders!</p>
+    `;
+    await sendEmail(to, "Update on your EliteBuilders Sponsor Application", emailTemplate("Application Update", body));
+}
+
+export async function sendInviteEmail(
+    to: string,
+    role: string,
+    orgName: string | null,
+    inviteLink: string,
+    adminName: string,
+): Promise<void> {
+    const orgLine = orgName ? ` on behalf of <strong>${orgName}</strong>` : "";
+    const body = `
+        <p style="color: #374151;">Hi there,</p>
+        <p style="color: #374151;"><strong>${adminName}</strong> has invited you to join EliteBuilders as a <strong>${role}</strong>${orgLine}.</p>
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 16px 0;">
+            <p style="margin: 0; font-size: 14px; color: #1e40af;">
+                <strong>Role:</strong> ${role}${orgName ? `<br><strong>Organization:</strong> ${orgName}` : ""}
+            </p>
+        </div>
+        <p style="text-align: center; margin: 24px 0;">
+            <a href="${inviteLink}" style="display: inline-block; padding: 12px 24px; background-color: #2563EB; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">Accept Invitation</a>
+        </p>
+        <p style="color: #374151;">We look forward to having you on EliteBuilders!</p>
+    `;
+    await sendEmail(to, `You're invited to join EliteBuilders as a ${role}!`, emailTemplate("You've Been Invited!", body));
 }

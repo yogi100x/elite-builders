@@ -74,6 +74,11 @@ export default defineSchema({
         ),
         assignedJudges: v.optional(v.array(v.id("users"))),
         season: v.optional(v.string()),
+        templateRepoUrl: v.optional(v.string()),
+        templateRepoOwner: v.optional(v.string()),
+        templateRepoName: v.optional(v.string()),
+        hiddenTestFileIds: v.optional(v.array(v.id("_storage"))),
+        testRunCommand: v.optional(v.string()),
     })
         .index("by_sponsor", ["sponsorId"])
         .index("by_status", ["status"])
@@ -178,6 +183,21 @@ export default defineSchema({
     })
         .index("by_user", ["userId"])
         .index("by_user_unread", ["userId", "read"]),
+
+    sponsorApplications: defineTable({
+        userId: v.id("users"),
+        orgName: v.string(),
+        website: v.optional(v.string()),
+        description: v.optional(v.string()),
+        industry: v.optional(v.string()),
+        contactEmail: v.string(),
+        status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected")),
+        reviewedBy: v.optional(v.id("users")),
+        reviewedAt: v.optional(v.number()),
+        rejectionReason: v.optional(v.string()),
+    })
+        .index("by_user", ["userId"])
+        .index("by_status", ["status"]),
 
     invites: defineTable({
         email: v.string(),
