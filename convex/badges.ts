@@ -80,7 +80,8 @@ export const leaderboard = query({
                     .query("badges")
                     .withIndex("by_user", (q) => q.eq("userId", userId as any))
                     .take(4);
-                return { ...user!, points: userPoints.get(userId)!, badges, skills: user!.skills ?? [] };
+                const userDoc = user as any;
+                return { ...userDoc!, points: userPoints.get(userId)!, badges, skills: userDoc!.skills ?? [] };
             }),
         );
         return { entries, hasMore };
