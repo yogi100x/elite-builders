@@ -119,6 +119,66 @@ export const becomeSponsor = mutation({
     },
 });
 
+export const getPublicProfile = query({
+    args: { userId: v.id("users") },
+    handler: async (ctx, args) => {
+        const user = await ctx.db.get(args.userId);
+        if (!user) return null;
+
+        const badges = await ctx.db
+            .query("badges")
+            .withIndex("by_user", (q) => q.eq("userId", args.userId))
+            .collect();
+
+        const submissions = await ctx.db
+            .query("submissions")
+            .withIndex("by_user", (q) => q.eq("userId", args.userId))
+            .collect();
+
+        const awardedCount = submissions.filter(
+            (s) => s.status === "awarded",
+        ).length;
+
+        return {
+            _id: user._id,
+            name: user.name,
+            profileImageUrl: user.profileImageUrl,
+            githubUsername: user.githubUsername,
+            portfolioUrl: user.portfolioUrl,
+            bio: user.bio,
+            skills: user.skills,
+            linkedinUrl: user.linkedinUrl,
+            twitterUrl: user.twitterUrl,
+            points: user.points,
+            badges,
+            totalSubmissions: submissions.length,
+            awardedSubmissions: awardedCount,
+        };
+    },
+});
+
+export const updateProfile = mutation({
+    args: {
+        bio: v.optional(v.string()),
+        portfolioUrl: v.optional(v.string()),
+        skills: v.optional(v.array(v.string())),
+        linkedinUrl: v.optional(v.string()),
+        twitterUrl: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const caller = await requireAuth(ctx);
+        const updates: Record<string, unknown> = {};
+
+        if (args.bio !== undefined) updates.bio = args.bio;
+        if (args.portfolioUrl !== undefined) updates.portfolioUrl = args.portfolioUrl;
+        if (args.skills !== undefined) updates.skills = args.skills;
+        if (args.linkedinUrl !== undefined) updates.linkedinUrl = args.linkedinUrl;
+        if (args.twitterUrl !== undefined) updates.twitterUrl = args.twitterUrl;
+
+        await ctx.db.patch(caller._id, updates);
+    },
+});
+
 import { internalMutation } from "./_generated/server";
 
 export const makeAdmin = internalMutation({
