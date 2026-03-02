@@ -13,25 +13,73 @@ export const listByUser = query({
     },
 });
 
-// Global leaderboard: top 50 users by points
+// Global leaderboard: top users by points (configurable limit, default 50)
 export const leaderboard = query({
-    args: {},
-    handler: async (ctx) => {
+    args: { limit: v.optional(v.number()) },
+    handler: async (ctx, args) => {
+        const cap = args.limit ?? 50;
         const users = await ctx.db.query("users").collect();
         const sorted = users
             .filter((u) => u.points > 0)
             .sort((a, b) => b.points - a.points)
-            .slice(0, 50);
+            .slice(0, cap);
 
         return Promise.all(
             sorted.map(async (user) => {
                 const userBadges = await ctx.db
                     .query("badges")
                     .withIndex("by_user", (q) => q.eq("userId", user._id))
-                    .collect();
+                    .take(4);
                 return { ...user, badges: userBadges };
             }),
         );
+    },
+});
+
+// Per-challenge leaderboard: ranked awarded submissions for a specific challenge
+export const challengeLeaderboard = query({
+    args: { challengeId: v.id("challenges") },
+    handler: async (ctx, args) => {
+        const submissions = await ctx.db
+            .query("submissions")
+            .withIndex("by_challenge_status", (q) =>
+                q.eq("challengeId", args.challengeId).eq("status", "awarded"),
+            )
+            .collect();
+
+        const ranked = submissions
+            .map((s) => ({
+                ...s,
+                effectiveScore: s.score ?? s.provisionalScore ?? 0,
+            }))
+            .sort((a, b) => b.effectiveScore - a.effectiveScore);
+
+        const results = await Promise.all(
+            ranked.map(async (submission, index) => {
+                const user = await ctx.db.get(submission.userId);
+                const badges = await ctx.db
+                    .query("badges")
+                    .withIndex("by_user", (q) => q.eq("userId", submission.userId))
+                    .filter((q) => q.eq(q.field("challengeId"), args.challengeId))
+                    .collect();
+
+                return {
+                    rank: index + 1,
+                    user: user
+                        ? {
+                              _id: user._id,
+                              name: user.name,
+                              profileImageUrl: user.profileImageUrl,
+                              githubUsername: user.githubUsername,
+                          }
+                        : null,
+                    score: submission.effectiveScore,
+                    badges,
+                    submissionId: submission._id,
+                };
+            }),
+        );
+        return results;
     },
 });
 
