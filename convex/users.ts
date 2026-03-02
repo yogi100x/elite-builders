@@ -249,7 +249,7 @@ export const listJudges = query({
         await requireAuth(ctx, "sponsor")
         const users = await ctx.db.query("users").collect()
         return users
-            .filter((u) => u.role === "judge")
+            .filter((u) => u.role === "judge" || u.role === "admin")
             .map((u) => ({ _id: u._id, name: u.name, email: u.email }))
     },
 })

@@ -65,35 +65,35 @@ export const processWeeklyDigest = internalAction({
     handler: async (ctx) => {
         const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
 
-        // Get all users
-        const users: any[] = await ctx.runQuery(internal.users.listAllInternal, {})
+        // Get candidates only — sponsors/judges/admins don't need digest emails
+        const allUsers = await ctx.runQuery(internal.users.listAllInternal, {})
+        const candidates = allUsers.filter((u) => u.role === "candidate")
 
         // Count new challenges this week
-        const challenges: any[] = await ctx.runQuery(internal.challenges.listAllInternal, {})
+        const challenges = await ctx.runQuery(internal.challenges.listAllInternal, {})
         const newChallengeCount = challenges.filter(
-            (c: any) => c._creationTime >= oneWeekAgo,
+            (c) => c._creationTime >= oneWeekAgo,
         ).length
 
         // Get leaderboard for rank lookup
-        const leaderboard: any = await ctx.runQuery(internal.badges.leaderboardInternal, {})
+        const leaderboard = await ctx.runQuery(internal.badges.leaderboardInternal, {})
 
-        for (const user of users) {
+        // Fetch all badges once to avoid N+1 queries per user
+        const allBadges = await ctx.runQuery(internal.badges.listAllBadgesInternal, {})
+
+        for (const user of candidates) {
             // Check if user opted into weekly digest
             const prefs = user.emailPreferences
             if (prefs && !prefs.weeklyDigest) continue
-            // Skip users with no email preferences set (default opt-in is fine)
 
-            // Count badges earned by this user in the past week
-            const userBadges: any[] = await ctx.runQuery(internal.badges.listByUserInternal, {
-                userId: user._id,
-            })
-            const newBadgeCount = userBadges.filter(
-                (b: any) => b.awardedAt >= oneWeekAgo,
+            // Count badges earned by this user in the past week (from pre-fetched data)
+            const newBadgeCount = allBadges.filter(
+                (b) => b.userId === user._id && b.awardedAt >= oneWeekAgo,
             ).length
 
             // Find leaderboard rank
             const rankIndex = leaderboard.findIndex(
-                (entry: any) => entry._id?.toString() === user._id.toString(),
+                (entry) => entry._id === user._id,
             )
             const rank = rankIndex >= 0 ? rankIndex + 1 : null
 

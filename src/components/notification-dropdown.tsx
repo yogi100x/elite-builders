@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { Bell, Award, FileText, XCircle } from "lucide-react"
+import { Bell, Award, FileText, XCircle, Handshake } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -21,6 +21,7 @@ const typeIcons: Record<Doc<"notifications">["type"], React.ReactNode> = {
     award: <Award size={16} className="text-green-500 shrink-0" />,
     submission: <FileText size={16} className="text-blue-500 shrink-0" />,
     "not-selected": <XCircle size={16} className="text-red-500 shrink-0" />,
+    engagement: <Handshake size={16} className="text-purple-500 shrink-0" />,
 }
 
 export function NotificationDropdown() {

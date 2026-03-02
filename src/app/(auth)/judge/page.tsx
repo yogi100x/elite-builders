@@ -7,24 +7,26 @@ import { JudgePanel } from "@/components/judge-panel"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { Doc } from "@/convex/_generated/dataModel"
 
+type SubmissionWithChallenge = Doc<"submissions"> & {
+    challenge: Doc<"challenges">
+}
+
 function SubmissionListItem({
     sub,
     isSelected,
     onClick,
 }: {
-    sub: Doc<"submissions">
+    sub: SubmissionWithChallenge
     isSelected: boolean
     onClick: () => void
 }) {
-    const challenge = useQuery(api.challenges.getById, { id: sub.challengeId })
-
     return (
         <div
             onClick={onClick}
             className={`border rounded-card p-4 cursor-pointer hover:border-brand-primary transition-brand ${isSelected ? "border-brand-primary bg-blue-50/5" : ""}`}
         >
             <p className="text-sm font-medium">
-                {challenge?.title ?? <span className="text-xs text-muted-foreground font-mono">Loading...</span>}
+                {sub.challenge.title}
             </p>
             {sub.githubOwner && (
                 <p className="text-xs text-muted-foreground mt-0.5">by {sub.githubOwner}</p>
@@ -39,14 +41,15 @@ function SubmissionListItem({
 export default function JudgePage() {
     const { user } = useUser()
     const role = user?.publicMetadata?.role as string | undefined
-    const submissions = useQuery(api.submissions.listPendingReview)
-    const [selected, setSelected] = useState<Doc<"submissions"> | null>(null)
+    const rawSubmissions = useQuery(api.submissions.listPendingReview)
+    const submissions = rawSubmissions?.filter((s): s is NonNullable<typeof s> => s !== null)
+    const [selected, setSelected] = useState<SubmissionWithChallenge | null>(null)
 
     if (role !== "judge" && role !== "admin") {
         return <div className="text-center py-16 text-muted-foreground">You don't have judge access.</div>
     }
 
-    if (!submissions) return <Skeleton className="h-64" />
+    if (!submissions || rawSubmissions === undefined) return <Skeleton className="h-64" />
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

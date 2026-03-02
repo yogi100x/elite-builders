@@ -1,6 +1,7 @@
 import { query, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { requireAuth } from "./lib/auth";
+import type { Id } from "./_generated/dataModel";
 
 export const listByUser = query({
     args: {},
@@ -51,24 +52,24 @@ export const leaderboard = query({
                     seasonChallengeIds!.has(b.challengeId.toString()),
                 );
 
-                const userPoints = new Map<string, number>();
+                const seasonUserPoints = new Map<Id<"users">, number>();
                 for (const badge of seasonBadges) {
-                    const current = userPoints.get(badge.userId.toString()) ?? 0;
-                    userPoints.set(badge.userId.toString(), current + badge.level * 10);
+                    const current = seasonUserPoints.get(badge.userId) ?? 0;
+                    seasonUserPoints.set(badge.userId, current + badge.level * 10);
                 }
 
-                const allSorted = [...userPoints.entries()].sort((a, b) => b[1] - a[1]);
+                const allSorted = [...seasonUserPoints.entries()].sort((a, b) => b[1] - a[1]);
                 const hasMore = allSorted.length > offset + limit;
                 const sorted = allSorted.slice(offset, offset + limit);
 
                 const entries = await Promise.all(
                     sorted.map(async ([userId, pts]) => {
-                        const user = await ctx.db.get(userId as any);
+                        const user = await ctx.db.get(userId);
                         const badges = await ctx.db
                             .query("badges")
-                            .withIndex("by_user", (q) => q.eq("userId", userId as any))
+                            .withIndex("by_user", (q) => q.eq("userId", userId))
                             .take(4);
-                        return { ...user!, points: pts, badges, skills: (user as any)?.skills ?? [] };
+                        return { ...user!, points: pts, badges, skills: user?.skills ?? [] };
                     }),
                 );
                 return { entries, hasMore };
@@ -108,27 +109,26 @@ export const leaderboard = query({
         });
 
         // Aggregate points per user
-        const userPoints = new Map<string, number>();
+        const periodUserPoints = new Map<Id<"users">, number>();
         for (const badge of filtered) {
-            const current = userPoints.get(badge.userId.toString()) ?? 0;
-            userPoints.set(badge.userId.toString(), current + badge.level * 10);
+            const current = periodUserPoints.get(badge.userId) ?? 0;
+            periodUserPoints.set(badge.userId, current + badge.level * 10);
         }
 
         // Sort and paginate
-        const allSorted = [...userPoints.entries()]
+        const allSorted = [...periodUserPoints.entries()]
             .sort((a, b) => b[1] - a[1]);
         const hasMore = allSorted.length > offset + limit;
         const sorted = allSorted.slice(offset, offset + limit);
 
         const entries = await Promise.all(
             sorted.map(async ([userId]) => {
-                const user = await ctx.db.get(userId as any);
+                const user = await ctx.db.get(userId);
                 const badges = await ctx.db
                     .query("badges")
-                    .withIndex("by_user", (q) => q.eq("userId", userId as any))
+                    .withIndex("by_user", (q) => q.eq("userId", userId))
                     .take(4);
-                const userDoc = user as any;
-                return { ...userDoc!, points: userPoints.get(userId)!, badges, skills: userDoc!.skills ?? [] };
+                return { ...user!, points: periodUserPoints.get(userId)!, badges, skills: user?.skills ?? [] };
             }),
         );
         return { entries, hasMore };
@@ -305,12 +305,12 @@ export const grantFirstBuild = internalMutation({
 export const leaderboardInternal = internalQuery({
     args: {},
     handler: async (ctx) => {
-        const allUsers = await ctx.db.query("users").collect()
+        const allUsers = await ctx.db.query("users").collect();
         return allUsers
             .filter((u) => u.points > 0)
-            .sort((a, b) => b.points - a.points)
+            .sort((a, b) => b.points - a.points);
     },
-})
+});
 
 export const listByUserInternal = internalQuery({
     args: { userId: v.id("users") },
@@ -318,6 +318,13 @@ export const listByUserInternal = internalQuery({
         return ctx.db
             .query("badges")
             .withIndex("by_user", (q) => q.eq("userId", userId))
-            .collect()
+            .collect();
     },
-})
+});
+
+export const listAllBadgesInternal = internalQuery({
+    args: {},
+    handler: async (ctx) => {
+        return ctx.db.query("badges").collect();
+    },
+});

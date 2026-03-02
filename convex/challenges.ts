@@ -111,6 +111,16 @@ export const create = mutation({
             .unique();
         if (!sponsor) throw new Error("Sponsor profile not found");
 
+        // Validate assigned judges have the correct role
+        if (args.assignedJudges) {
+            for (const judgeId of args.assignedJudges) {
+                const judge = await ctx.db.get(judgeId);
+                if (!judge || (judge.role !== "judge" && judge.role !== "admin")) {
+                    throw new ConvexError("Invalid judge assignment — user is not a judge");
+                }
+            }
+        }
+
         return ctx.db.insert("challenges", {
             ...args,
             sponsorId: sponsor._id,

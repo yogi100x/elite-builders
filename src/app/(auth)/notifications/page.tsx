@@ -14,12 +14,14 @@ const typeIcons: Record<Doc<"notifications">["type"], React.ReactNode> = {
     award: <Award size={20} className="text-green-500 shrink-0" />,
     submission: <FileText size={20} className="text-blue-500 shrink-0" />,
     "not-selected": <XCircle size={20} className="text-red-500 shrink-0" />,
+    engagement: <Bell size={20} className="text-purple-500 shrink-0" />,
 }
 
 const typeLabels: Record<Doc<"notifications">["type"], string> = {
     award: "Award",
     submission: "Submission",
     "not-selected": "Not Selected",
+    engagement: "Engagement",
 }
 
 export default function NotificationsPage() {
