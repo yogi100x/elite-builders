@@ -31,23 +31,29 @@ export const create = mutation({
             throw new ConvexError("The deadline for this challenge has passed");
         }
 
+        // Check for existing submission — allow revision
         const existingSubmission = await ctx.db
             .query("submissions")
             .withIndex("by_challenge_user", (q) =>
                 q.eq("challengeId", args.challengeId).eq("userId", caller._id),
             )
+            .order("desc")
             .first();
-        if (existingSubmission) {
-            throw new ConvexError(
-                "You have already submitted to this challenge. Revision support is coming soon.",
-            );
+
+        // If existing and already awarded, don't allow revision
+        if (existingSubmission && existingSubmission.status === "awarded") {
+            throw new ConvexError("Your submission has already been awarded — cannot resubmit.");
         }
+
+        const version = existingSubmission ? (existingSubmission.version ?? 1) + 1 : 1;
 
         const submissionId = await ctx.db.insert("submissions", {
             ...args,
             userId: caller._id,
             status: "in-review",
             scoringStatus: "pending",
+            version,
+            previousSubmissionId: existingSubmission?._id,
         });
 
         // Notify candidate that submission was received

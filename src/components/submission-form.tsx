@@ -3,7 +3,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { useMutation } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
@@ -37,6 +37,11 @@ export function SubmissionForm({ challengeId }: { challengeId: Id<"challenges"> 
     const [file, setFile] = useState<File | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [repoTab, setRepoTab] = useState<"github" | "manual">("github")
+
+    const existingSubmissions = useQuery(api.submissions.listByUser)
+    const existingForChallenge = existingSubmissions?.find(
+        (s) => s.challengeId === challengeId && s.status !== "awarded",
+    )
 
     const form = useForm<FormValues>({
         resolver: zodResolver(schema),
@@ -113,6 +118,13 @@ export function SubmissionForm({ challengeId }: { challengeId: Id<"challenges"> 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {existingForChallenge && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                        You already submitted v{existingForChallenge.version ?? 1}.
+                        Submitting again will create a new revision.
+                    </div>
+                )}
+
                 {/* Repo selection — GitHub or manual */}
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Repository *</label>
@@ -176,7 +188,7 @@ export function SubmissionForm({ challengeId }: { challengeId: Id<"challenges"> 
                 )} />
 
                 <Button type="submit" disabled={isSubmitting} className="w-full">
-                    {isSubmitting ? "Submitting & scoring..." : "Submit Solution"}
+                    {isSubmitting ? "Submitting & scoring..." : existingForChallenge ? "Resubmit Solution" : "Submit Solution"}
                 </Button>
                 <p className="text-xs text-center text-muted-foreground">
                     Your submission will be automatically scored by AI, then reviewed by a human judge.
