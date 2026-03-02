@@ -6,7 +6,7 @@ import Link from "next/link"
 import { SignInButton } from "@clerk/nextjs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Download, Lock } from "lucide-react"
+import { Download, Lock, Trophy } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { DIFFICULTY_COLORS, DIFFICULTY_LABELS } from "@/lib/constants"
 import { formatDeadline } from "@/lib/utils"
@@ -106,11 +106,19 @@ export function ChallengeDetailView({ preloaded, isAuthenticated }: Props) {
                     <div className="prose prose-sm max-w-none">
                         <p className="whitespace-pre-line">{challenge.problemStatement}</p>
                     </div>
-                    {challenge.status === "open" && (
-                        <Button asChild className="mt-6">
-                            <Link href={`/challenges/${challenge._id}/submit`}>Submit Solution →</Link>
+                    <div className="flex gap-3 mt-6">
+                        {challenge.status === "open" && (
+                            <Button asChild>
+                                <Link href={`/challenges/${challenge._id}/submit`}>Submit Solution →</Link>
+                            </Button>
+                        )}
+                        <Button asChild variant="outline" size="sm">
+                            <Link href={`/challenges/${challenge._id}/leaderboard`}>
+                                <Trophy size={14} className="mr-1.5" />
+                                View Leaderboard
+                            </Link>
                         </Button>
-                    )}
+                    </div>
                 </section>
             ) : (
                 <div className="relative border rounded-card p-8 bg-muted/50 text-center space-y-3">
