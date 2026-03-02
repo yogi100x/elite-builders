@@ -24,10 +24,9 @@ function SubmissionRow({ sub }: { sub: Doc<"submissions"> }) {
                 <p className="text-sm font-medium truncate max-w-[260px]">
                     {challenge?.title ?? <span className="text-xs text-muted-foreground font-mono">Loading...</span>}
                 </p>
-                {(sub.score ?? sub.provisionalScore) !== undefined && (
+                {sub.score !== undefined && (
                     <p className="font-mono text-sm font-bold">
-                        Score: {sub.score ?? sub.provisionalScore}/100
-                        {sub.score == null && <span className="text-xs text-muted-foreground ml-1">(AI)</span>}
+                        Score: {sub.score}/100
                     </p>
                 )}
                 {sub.feedback && (
@@ -38,7 +37,6 @@ function SubmissionRow({ sub }: { sub: Doc<"submissions"> }) {
             <SubmissionStatusBadge
                 status={sub.status}
                 scoringStatus={sub.scoringStatus}
-                provisionalScore={sub.provisionalScore}
             />
         </div>
     )

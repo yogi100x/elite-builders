@@ -5,14 +5,13 @@ import { Loader2 } from "lucide-react"
 interface SubmissionStatusBadgeProps {
     status: string
     scoringStatus?: string   // "pending" | "scoring" | "scored" | "failed"
-    provisionalScore?: number
 }
 
 /**
  * Shows the submission's pipeline status at a glance.
- * Convex live queries keep this up-to-date without a page refresh.
+ * Score is hidden from candidates until a judge awards the submission.
  */
-export function SubmissionStatusBadge({ status, scoringStatus, provisionalScore }: SubmissionStatusBadgeProps) {
+export function SubmissionStatusBadge({ status, scoringStatus }: SubmissionStatusBadgeProps) {
     // Final award status takes priority
     if (status === "awarded") {
         return <Badge className="bg-brand-success text-white">Awarded</Badge>
@@ -44,7 +43,7 @@ export function SubmissionStatusBadge({ status, scoringStatus, provisionalScore 
         if (scoringStatus === "scored") {
             return (
                 <Badge variant="outline" className="text-brand-primary border-brand-primary">
-                    Scored ({provisionalScore ?? "?"}/100) — Pending Review
+                    Under Review
                 </Badge>
             )
         }
