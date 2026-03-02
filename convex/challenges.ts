@@ -68,6 +68,7 @@ export const create = mutation({
             ),
         ),
         dataPackUrl: v.optional(v.string()),
+        season: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const caller = await requireAuth(ctx, "sponsor");
@@ -215,6 +216,7 @@ export const saveDraft = mutation({
         ),
         prize: v.optional(v.string()),
         deadline: v.optional(v.number()),
+        season: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const caller = await requireAuth(ctx, "sponsor");

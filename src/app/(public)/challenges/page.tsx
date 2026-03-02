@@ -13,15 +13,18 @@ export default function ChallengesPage() {
     const [difficulty, setDifficulty] = useState<string>("all")
     const [statusFilter, setStatusFilter] = useState<string>("all")
     const [tagFilter, setTagFilter] = useState<string>("all")
+    const [seasonFilter, setSeasonFilter] = useState<string>("all")
 
     const challenges = useQuery(api.challenges.listPublic, {})
 
     const allTags = [...new Set(challenges?.flatMap((c) => c.tags) ?? [])]
+    const allSeasons = [...new Set(challenges?.map((c) => c.season).filter(Boolean) ?? [])]
 
     const filtered = challenges?.filter((c) => {
         if (difficulty !== "all" && c.difficulty !== difficulty) return false
         if (statusFilter !== "all" && c.status !== statusFilter) return false
         if (tagFilter !== "all" && !c.tags.includes(tagFilter)) return false
+        if (seasonFilter !== "all" && c.season !== seasonFilter) return false
         if (search && !c.title.toLowerCase().includes(search.toLowerCase())) return false
         return true
     })
@@ -81,6 +84,22 @@ export default function ChallengesPage() {
                         ))}
                     </SelectContent>
                 </Select>
+
+                {allSeasons.length > 0 && (
+                    <Select value={seasonFilter} onValueChange={setSeasonFilter}>
+                        <SelectTrigger className="w-full sm:w-[160px]">
+                            <SelectValue placeholder="Season" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Seasons</SelectItem>
+                            {allSeasons.map((season) => (
+                                <SelectItem key={season} value={season!}>
+                                    {season}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
             </div>
 
             <ChallengeGrid challenges={filtered} emptyMessage="No challenges available yet. Check back soon!" />
