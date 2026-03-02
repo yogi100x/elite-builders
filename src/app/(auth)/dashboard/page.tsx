@@ -145,6 +145,7 @@ export default function DashboardPage() {
     const me = useQuery(api.users.getMe)
     const submissions = useQuery(api.submissions.listByUser)
     const badges = useQuery(api.badges.listByUser)
+    const careerScore = useQuery(api.badges.getCareerScore)
     const router = useRouter()
 
     useEffect(() => {
@@ -171,6 +172,22 @@ export default function DashboardPage() {
                         <h1 className="font-display text-3xl font-bold">My Dashboard</h1>
                         <p className="text-muted-foreground">{me.points} points earned</p>
                     </div>
+
+                    {careerScore && (
+                        <Card>
+                            <CardHeader><CardTitle>Career Score</CardTitle></CardHeader>
+                            <CardContent>
+                                <p className="text-4xl font-bold font-mono text-brand-primary">
+                                    {careerScore.careerScore}
+                                </p>
+                                <div className="mt-2 grid grid-cols-3 gap-2 text-sm text-muted-foreground">
+                                    <span>Badges: {careerScore.breakdown.badgePoints}pts</span>
+                                    <span>Performance: {careerScore.breakdown.performanceScore}pts</span>
+                                    <span>Consistency: {careerScore.breakdown.consistencyBonus}pts</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     <SponsorInterestSection />
 

@@ -83,6 +83,50 @@ export const challengeLeaderboard = query({
     },
 });
 
+export const getCareerScore = query({
+    handler: async (ctx) => {
+        const caller = await requireAuth(ctx);
+
+        const submissions = await ctx.db
+            .query("submissions")
+            .withIndex("by_user", (q) => q.eq("userId", caller._id))
+            .collect();
+
+        const badges = await ctx.db
+            .query("badges")
+            .withIndex("by_user", (q) => q.eq("userId", caller._id))
+            .collect();
+
+        const awarded = submissions.filter((s) => s.status === "awarded");
+        const avgScore =
+            awarded.length > 0
+                ? awarded.reduce(
+                      (sum, s) => sum + (s.score ?? s.provisionalScore ?? 0),
+                      0,
+                  ) / awarded.length
+                : 0;
+
+        const basePoints = caller.points;
+        const performanceScore = Math.round(avgScore * awarded.length * 0.5);
+        const consistencyBonus = submissions.length >= 5 ? 50 : submissions.length * 10;
+
+        const careerScore = basePoints + performanceScore + consistencyBonus;
+
+        return {
+            careerScore,
+            breakdown: {
+                badgePoints: basePoints,
+                performanceScore,
+                consistencyBonus,
+                averageScore: Math.round(avgScore),
+                totalSubmissions: submissions.length,
+                awardedSubmissions: awarded.length,
+                totalBadges: badges.length,
+            },
+        };
+    },
+});
+
 /** Awards a "First Build" badge if this is the user's first submission */
 export const grantFirstBuild = internalMutation({
     args: { userId: v.id("users"), submissionId: v.id("submissions"), challengeId: v.id("challenges") },
