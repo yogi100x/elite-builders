@@ -1,15 +1,38 @@
 "use client"
 import Link from "next/link"
+import { useMutation, useQuery } from "convex/react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Clock } from "lucide-react"
+import { Clock, Bookmark } from "lucide-react"
 import { DIFFICULTY_COLORS, DIFFICULTY_LABELS } from "@/lib/constants"
 import { formatDeadline } from "@/lib/utils"
-import type { Doc } from "@/convex/_generated/dataModel"
+import { api } from "@/convex/_generated/api"
+import type { Doc, Id } from "@/convex/_generated/dataModel"
 
 interface ChallengeCardProps {
     challenge: Doc<"challenges">
+}
+
+function BookmarkButton({ challengeId }: { challengeId: Id<"challenges"> }) {
+    const isBookmarked = useQuery(api.bookmarks.isBookmarked, { challengeId })
+    const bookmark = useMutation(api.bookmarks.bookmark)
+    const unbookmark = useMutation(api.bookmarks.unbookmark)
+    
+    return (
+        <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                isBookmarked ? unbookmark({ challengeId }) : bookmark({ challengeId })
+            }}
+        >
+            <Bookmark size={16} className={isBookmarked ? "fill-current text-brand-primary" : ""} />
+        </Button>
+    )
 }
 
 export function ChallengeCard({ challenge }: ChallengeCardProps) {
@@ -20,9 +43,12 @@ export function ChallengeCard({ challenge }: ChallengeCardProps) {
                     <h3 className="font-display font-semibold text-sm leading-snug line-clamp-2">
                         {challenge.title}
                     </h3>
-                    <Badge className={DIFFICULTY_COLORS[challenge.difficulty]} variant="secondary">
-                        {DIFFICULTY_LABELS[challenge.difficulty]}
-                    </Badge>
+                    <div className="flex items-center gap-1">
+                        <BookmarkButton challengeId={challenge._id} />
+                        <Badge className={DIFFICULTY_COLORS[challenge.difficulty]} variant="secondary">
+                            {DIFFICULTY_LABELS[challenge.difficulty]}
+                        </Badge>
+                    </div>
                 </div>
             </CardHeader>
             <CardContent className="pb-2 flex-grow">
