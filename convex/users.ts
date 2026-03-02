@@ -1,4 +1,4 @@
-import { mutation, query, internalQuery } from "./_generated/server";
+import { mutation, query, internalQuery, internalMutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireAuth } from "./lib/auth";
 
@@ -195,7 +195,18 @@ export const updateEmailPreferences = mutation({
     },
 });
 
-import { internalMutation } from "./_generated/server";
+export const setGithubProfile = internalMutation({
+    args: {
+        userId: v.id("users"),
+        githubProfile: v.string(),
+    },
+    handler: async (ctx, { userId, githubProfile }) => {
+        await ctx.db.patch(userId, {
+            githubProfile,
+            githubProfileAnalyzedAt: Date.now(),
+        })
+    },
+})
 
 export const makeAdmin = internalMutation({
     args: { email: v.string() },
