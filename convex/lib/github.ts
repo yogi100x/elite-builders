@@ -122,3 +122,35 @@ export async function analyzeRepo(
         recentCommits,
     };
 }
+
+export interface RepoSummary {
+    name: string;
+    fullName: string;
+    description: string | null;
+    language: string | null;
+    topics: string[];
+    stars: number;
+    updatedAt: string;
+    htmlUrl: string;
+}
+
+export async function listUserRepos(
+    username: string,
+    token: string,
+): Promise<RepoSummary[]> {
+    const data = await githubFetch(
+        `/users/${username}/repos?sort=updated&per_page=10&type=owner`,
+        token,
+    );
+    if (!data || !Array.isArray(data)) return [];
+    return data.map((r: any) => ({
+        name: r.name,
+        fullName: r.full_name,
+        description: r.description ?? null,
+        language: r.language ?? null,
+        topics: r.topics ?? [],
+        stars: r.stargazers_count ?? 0,
+        updatedAt: r.updated_at ?? "",
+        htmlUrl: r.html_url,
+    }));
+}
