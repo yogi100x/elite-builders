@@ -1,5 +1,6 @@
 import { mutation, query, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { ConvexError } from "convex/values";
 import { requireAuth } from "./lib/auth";
 import { internal } from "./_generated/api";
 
@@ -22,6 +23,7 @@ export const create = mutation({
             ...args,
             userId: caller._id,
             status: "in-review",
+            scoringStatus: "pending",
         });
 
         // Schedule AI rubric evaluation (non-blocking)
@@ -54,6 +56,23 @@ export const setProvisionalScore = internalMutation({
             provisionalScore: args.provisionalScore,
             aiRubricFeedback: args.aiRubricFeedback,
             aiScoredAt: Date.now(),
+        });
+    },
+});
+
+export const setScoringStatus = internalMutation({
+    args: {
+        submissionId: v.id("submissions"),
+        scoringStatus: v.union(
+            v.literal("pending"),
+            v.literal("scoring"),
+            v.literal("scored"),
+            v.literal("failed"),
+        ),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.submissionId, {
+            scoringStatus: args.scoringStatus,
         });
     },
 });

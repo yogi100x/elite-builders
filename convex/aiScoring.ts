@@ -34,40 +34,47 @@ export const scoreSubmission = internalAction({
         const submission = await ctx.runQuery(internal.submissions.getById, { submissionId })
         if (!submission) throw new Error("Submission not found")
 
+        // Mark scoring as in-progress
+        await ctx.runMutation(internal.submissions.setScoringStatus, {
+            submissionId,
+            scoringStatus: "scoring",
+        })
+
         const challenge = await ctx.runQuery(internal.challenges.getByIdInternal, { id: submission.challengeId })
         if (!challenge) throw new Error("Challenge not found")
 
-        // Fetch GitHub repo data for context
-        let readmeContent = ""
-        let repoDescription = ""
-        let techStack = ""
+        try {
+            // Fetch GitHub repo data for context
+            let readmeContent = ""
+            let repoDescription = ""
+            let techStack = ""
 
-        if (submission.githubOwner && submission.githubRepo) {
-            try {
-                const analysis = await ctx.runAction(api.github.analyzeRepo, {
-                    owner: submission.githubOwner,
-                    repo: submission.githubRepo,
-                })
-                readmeContent = analysis.readme ?? ""
-                repoDescription = analysis.metadata?.description ?? ""
-                const languages = analysis.metadata?.languages?.map((l: any) => l.name).join(", ") ?? ""
-                const deps = Object.keys(analysis.packageJson?.dependencies ?? {}).slice(0, 10).join(", ")
-                techStack = [languages, deps].filter(Boolean).join(" | ")
-            } catch (err) {
-                console.error("[ai-scoring] GitHub fetch failed, scoring from notes only:", { error: err })
+            if (submission.githubOwner && submission.githubRepo) {
+                try {
+                    const analysis = await ctx.runAction(api.github.analyzeRepo, {
+                        owner: submission.githubOwner,
+                        repo: submission.githubRepo,
+                    })
+                    readmeContent = analysis.readme ?? ""
+                    repoDescription = analysis.metadata?.description ?? ""
+                    const languages = analysis.metadata?.languages?.map((l: any) => l.name).join(", ") ?? ""
+                    const deps = Object.keys(analysis.packageJson?.dependencies ?? {}).slice(0, 10).join(", ")
+                    techStack = [languages, deps].filter(Boolean).join(" | ")
+                } catch (err) {
+                    console.error("[ai-scoring] GitHub fetch failed, scoring from notes only:", { error: err })
+                }
             }
-        }
 
-        const apiKey = process.env.GEMINI_API_KEY
-        if (!apiKey) throw new Error("GEMINI_API_KEY not set in Convex environment")
+            const apiKey = process.env.GEMINI_API_KEY
+            if (!apiKey) throw new Error("GEMINI_API_KEY not set in Convex environment")
 
-        const genAI = new GoogleGenerativeAI(apiKey)
-        // Model configurable via env var — swap without redeploy if preview model is deprecated
-        const scoringModel = process.env.GEMINI_SCORING_MODEL ?? "gemini-3-flash"
-        const fallbackModel = process.env.GEMINI_FALLBACK_MODEL ?? "gemini-2.5-flash"
-        const model = genAI.getGenerativeModel({ model: scoringModel })
+            const genAI = new GoogleGenerativeAI(apiKey)
+            // Model configurable via env var — swap without redeploy if preview model is deprecated
+            const scoringModel = process.env.GEMINI_SCORING_MODEL ?? "gemini-3-flash"
+            const fallbackModel = process.env.GEMINI_FALLBACK_MODEL ?? "gemini-2.5-flash"
+            const model = genAI.getGenerativeModel({ model: scoringModel })
 
-        const prompt = `
+            const prompt = `
 Challenge: ${challenge.title}
 
 Problem Statement:
@@ -105,46 +112,61 @@ Return JSON in this exact format:
 }
 `
 
-        let result
-        try {
-            result = await model.generateContent([
-                { text: RUBRIC_SCORING_SYSTEM_PROMPT },
-                { text: prompt },
-            ])
-        } catch (modelErr) {
-            const isUnavailable = String(modelErr).includes("deprecated") || String(modelErr).includes("not found") || String(modelErr).includes("404")
-            if (!isUnavailable) throw modelErr
-            console.warn("[ai-scoring] Primary model unavailable, falling back:", { scoringModel, fallbackModel })
-            const fallback = genAI.getGenerativeModel({ model: fallbackModel })
-            result = await fallback.generateContent([
-                { text: RUBRIC_SCORING_SYSTEM_PROMPT },
-                { text: prompt },
-            ])
+            let result
+            try {
+                result = await model.generateContent([
+                    { text: RUBRIC_SCORING_SYSTEM_PROMPT },
+                    { text: prompt },
+                ])
+            } catch (modelErr) {
+                const isUnavailable = String(modelErr).includes("deprecated") || String(modelErr).includes("not found") || String(modelErr).includes("404")
+                if (!isUnavailable) throw modelErr
+                console.warn("[ai-scoring] Primary model unavailable, falling back:", { scoringModel, fallbackModel })
+                const fallback = genAI.getGenerativeModel({ model: fallbackModel })
+                result = await fallback.generateContent([
+                    { text: RUBRIC_SCORING_SYSTEM_PROMPT },
+                    { text: prompt },
+                ])
+            }
+
+            const rawText = result.response.text().trim()
+            let scoringResult: AIScoringResult
+
+            try {
+                // Strip markdown code blocks if the AI sneaks them in
+                const cleanedText = rawText.replace(/^\`\`\`json/m, "").replace(/^\`\`\`/m, "").trim();
+                scoringResult = JSON.parse(cleanedText)
+            } catch {
+                console.error("[ai-scoring] Failed to parse Gemini response:", { rawText })
+                throw new Error("AI scoring failed — invalid JSON response from Gemini")
+            }
+
+            // Clamp overall score to 0-100
+            const overallScore = Math.max(0, Math.min(100, Math.round(scoringResult.overallScore)))
+
+            // Persist provisional score to submission
+            await ctx.runMutation(internal.submissions.setProvisionalScore, {
+                submissionId,
+                provisionalScore: overallScore,
+                aiRubricFeedback: JSON.stringify(scoringResult),
+            })
+
+            // Mark scoring as complete
+            await ctx.runMutation(internal.submissions.setScoringStatus, {
+                submissionId,
+                scoringStatus: "scored",
+            })
+
+            console.log(`[ai-scoring] Scored submission ${submissionId}: ${overallScore}/100`)
+            return { overallScore, rubricScores: scoringResult.rubricScores }
+        } catch (error) {
+            // Mark scoring as failed so the UI can reflect the error
+            await ctx.runMutation(internal.submissions.setScoringStatus, {
+                submissionId,
+                scoringStatus: "failed",
+            })
+            console.error("[ai-scoring] Scoring failed for submission:", { submissionId, error })
+            throw error
         }
-
-        const rawText = result.response.text().trim()
-        let scoringResult: AIScoringResult
-
-        try {
-            // Strip markdown code blocks if the AI sneaks them in
-            const cleanedText = rawText.replace(/^\`\`\`json/m, "").replace(/^\`\`\`/m, "").trim();
-            scoringResult = JSON.parse(cleanedText)
-        } catch {
-            console.error("[ai-scoring] Failed to parse Gemini response:", { rawText })
-            throw new Error("AI scoring failed — invalid JSON response from Gemini")
-        }
-
-        // Clamp overall score to 0-100
-        const overallScore = Math.max(0, Math.min(100, Math.round(scoringResult.overallScore)))
-
-        // Persist provisional score to submission
-        await ctx.runMutation(internal.submissions.setProvisionalScore, {
-            submissionId,
-            provisionalScore: overallScore,
-            aiRubricFeedback: JSON.stringify(scoringResult),
-        })
-
-        console.log(`[ai-scoring] Scored submission ${submissionId}: ${overallScore}/100`)
-        return { overallScore, rubricScores: scoringResult.rubricScores }
     },
 })
