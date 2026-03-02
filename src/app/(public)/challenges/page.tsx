@@ -14,17 +14,20 @@ export default function ChallengesPage() {
     const [statusFilter, setStatusFilter] = useState<string>("all")
     const [tagFilter, setTagFilter] = useState<string>("all")
     const [seasonFilter, setSeasonFilter] = useState<string>("all")
+    const [companyFilter, setCompanyFilter] = useState<string>("all")
 
     const challenges = useQuery(api.challenges.listPublic, {})
 
     const allTags = [...new Set(challenges?.flatMap((c) => c.tags) ?? [])]
     const allSeasons = [...new Set(challenges?.map((c) => c.season).filter(Boolean) ?? [])]
+    const companies = [...new Set(challenges?.map((c) => c.sponsorOrgName).filter(Boolean))]
 
     const filtered = challenges?.filter((c) => {
         if (difficulty !== "all" && c.difficulty !== difficulty) return false
         if (statusFilter !== "all" && c.status !== statusFilter) return false
         if (tagFilter !== "all" && !c.tags.includes(tagFilter)) return false
         if (seasonFilter !== "all" && c.season !== seasonFilter) return false
+        if (companyFilter !== "all" && c.sponsorOrgName !== companyFilter) return false
         if (search && !c.title.toLowerCase().includes(search.toLowerCase())) return false
         return true
     })
@@ -100,6 +103,18 @@ export default function ChallengesPage() {
                         </SelectContent>
                     </Select>
                 )}
+
+                <Select value={companyFilter} onValueChange={setCompanyFilter}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="All Companies" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Companies</SelectItem>
+                        {companies.map((name) => (
+                            <SelectItem key={name} value={name}>{name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             <ChallengeGrid challenges={filtered} emptyMessage="No challenges available yet. Check back soon!" />

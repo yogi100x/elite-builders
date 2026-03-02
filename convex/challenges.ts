@@ -15,9 +15,17 @@ export const listPublic = query({
                 .collect()
             : await ctx.db.query("challenges").collect();
 
-        return challenges
+        const filtered = challenges
             .filter((c) => c.status !== "draft")
             .filter((c) => !args.difficulty || c.difficulty === args.difficulty);
+
+        // Join sponsor org name
+        return Promise.all(
+            filtered.map(async (c) => {
+                const sponsor = await ctx.db.get(c.sponsorId);
+                return { ...c, sponsorOrgName: sponsor?.orgName ?? "EliteBuilders" };
+            }),
+        );
     },
 });
 
