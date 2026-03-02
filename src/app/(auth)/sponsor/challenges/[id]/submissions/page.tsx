@@ -24,6 +24,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Download, ExternalLink, MessageSquare, Loader2 } from "lucide-react"
 import { STATUS_LABELS } from "@/lib/constants"
 import { toast } from "sonner"
@@ -107,17 +108,22 @@ function ExpressInterestButton({ submission }: { submission: Doc<"submissions"> 
 
 export default function SponsorSubmissionsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
+    const [sortBy, setSortBy] = useState<"score" | "date">("score")
+    const [filterStatus, setFilterStatus] = useState<string>("all")
     const submissions = useQuery(api.submissions.listByChallenge, {
         challengeId: id as Id<"challenges">,
     })
 
     if (!submissions) return <Skeleton className="h-64" />
 
-    const sorted = [...submissions].sort((a, b) => {
-        const scoreA = a.score ?? a.provisionalScore ?? 0
-        const scoreB = b.score ?? b.provisionalScore ?? 0
-        return scoreB - scoreA
-    })
+    const filtered = [...submissions]
+        .filter((s) => filterStatus === "all" || s.status === filterStatus)
+        .sort((a, b) => {
+            if (sortBy === "score") {
+                return (b.score ?? b.provisionalScore ?? 0) - (a.score ?? a.provisionalScore ?? 0)
+            }
+            return b._creationTime - a._creationTime
+        })
 
     return (
         <div className="space-y-6">
@@ -125,6 +131,28 @@ export default function SponsorSubmissionsPage({ params }: { params: Promise<{ i
                 <div>
                     <h1 className="font-display text-2xl font-bold">Submissions</h1>
                     <p className="text-muted-foreground">{submissions.length} total</p>
+                </div>
+                <div className="flex gap-2">
+                    <Select value={sortBy} onValueChange={(v) => setSortBy(v as "score" | "date")}>
+                        <SelectTrigger className="w-[130px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="score">By Score</SelectItem>
+                            <SelectItem value="date">By Date</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                        <SelectTrigger className="w-[150px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            <SelectItem value="in-review">In Review</SelectItem>
+                            <SelectItem value="awarded">Awarded</SelectItem>
+                            <SelectItem value="not-selected">Not Selected</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -149,7 +177,7 @@ export default function SponsorSubmissionsPage({ params }: { params: Promise<{ i
             </div>
 
             <div className="border rounded-card divide-y">
-                {sorted.map((sub, index) => {
+                {filtered.map((sub, index) => {
                     const displayScore = sub.score ?? sub.provisionalScore
                     return (
                         <div key={sub._id} className="flex items-center gap-4 p-4">
