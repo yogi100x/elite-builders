@@ -1,13 +1,103 @@
 "use client"
-import { use } from "react"
-import { useQuery } from "convex/react"
+
+import { use, useState } from "react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
 import { Id } from "@/convex/_generated/dataModel"
-import { Download, ExternalLink } from "lucide-react"
+import { Download, ExternalLink, MessageSquare, Loader2 } from "lucide-react"
 import { STATUS_LABELS } from "@/lib/constants"
+import { toast } from "sonner"
+import type { Doc } from "@/convex/_generated/dataModel"
+
+function ExpressInterestButton({ submission }: { submission: Doc<"submissions"> }) {
+    const [open, setOpen] = useState(false)
+    const [message, setMessage] = useState("")
+    const [sending, setSending] = useState(false)
+    const expressInterest = useMutation(api.engagements.expressInterest)
+
+    async function handleSend() {
+        if (!message.trim()) {
+            toast.error("Please enter a message")
+            return
+        }
+        setSending(true)
+        try {
+            await expressInterest({
+                submissionId: submission._id,
+                message: message.trim(),
+            })
+            toast.success("Interest expressed! The candidate has been notified.")
+            setMessage("")
+            setOpen(false)
+        } catch (error: unknown) {
+            const msg =
+                error instanceof Error
+                    ? error.message.replace(/^.*ConvexError:\s*/, "")
+                    : "Something went wrong"
+            toast.error(msg)
+        } finally {
+            setSending(false)
+        }
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                    <MessageSquare size={14} />
+                    Express Interest
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Express Interest</DialogTitle>
+                    <DialogDescription>
+                        Send a message to the candidate about their submission. They will be notified immediately.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2">
+                    <Label htmlFor="interest-message">Your message</Label>
+                    <Textarea
+                        id="interest-message"
+                        placeholder="We were impressed by your solution and would love to discuss an opportunity..."
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        rows={4}
+                    />
+                </div>
+                <DialogFooter>
+                    <Button
+                        onClick={handleSend}
+                        disabled={sending || !message.trim()}
+                    >
+                        {sending ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Sending...
+                            </>
+                        ) : (
+                            "Send Interest"
+                        )}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
 
 export default function SponsorSubmissionsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params)
@@ -72,6 +162,7 @@ export default function SponsorSubmissionsPage({ params }: { params: Promise<{ i
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
+                                <ExpressInterestButton submission={sub} />
                                 <Badge variant={sub.status === "awarded" ? "default" : "secondary"}>
                                     {STATUS_LABELS[sub.status]}
                                 </Badge>

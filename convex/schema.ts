@@ -130,6 +130,7 @@ export default defineSchema({
             v.literal("submission"),
             v.literal("award"),
             v.literal("not-selected"),
+            v.literal("engagement"),
         ),
         content: v.string(),
         read: v.boolean(),
@@ -155,4 +156,20 @@ export default defineSchema({
         analysis: v.string(), // JSON-stringified RepoAnalysis
         cachedAt: v.number(), // Date.now() when cached
     }).index("by_repo", ["owner", "repo"]),
+
+    engagements: defineTable({
+        sponsorId: v.id("sponsors"),
+        candidateId: v.id("users"),
+        submissionId: v.id("submissions"),
+        challengeId: v.id("challenges"),
+        message: v.string(),
+        status: v.union(
+            v.literal("pending"),
+            v.literal("accepted"),
+            v.literal("declined"),
+        ),
+    })
+        .index("by_sponsor", ["sponsorId"])
+        .index("by_candidate", ["candidateId"])
+        .index("by_submission", ["submissionId"]),
 });
