@@ -58,6 +58,16 @@ export const create = mutation({
         ),
         prize: v.string(),
         deadline: v.number(),
+        rubricCriteria: v.optional(
+            v.array(
+                v.object({
+                    name: v.string(),
+                    maxScore: v.number(),
+                    description: v.string(),
+                }),
+            ),
+        ),
+        dataPackUrl: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const caller = await requireAuth(ctx, "sponsor");
@@ -84,6 +94,16 @@ export const update = mutation({
         problemStatement: v.optional(v.string()),
         prize: v.optional(v.string()),
         deadline: v.optional(v.number()),
+        rubricCriteria: v.optional(
+            v.array(
+                v.object({
+                    name: v.string(),
+                    maxScore: v.number(),
+                    description: v.string(),
+                }),
+            ),
+        ),
+        dataPackUrl: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const caller = await requireAuth(ctx, "sponsor");

@@ -1,5 +1,5 @@
 "use client"
-import { useForm } from "react-hook-form"
+import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useMutation } from "convex/react"
@@ -11,6 +11,14 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent } from "@/components/ui/card"
+import { Plus, Trash2 } from "lucide-react"
+
+const rubricCriterionSchema = z.object({
+    name: z.string().min(1, "Criterion name is required"),
+    maxScore: z.coerce.number().min(1, "Must be at least 1").max(100, "Must be at most 100"),
+    description: z.string().min(1, "Description is required"),
+})
 
 const schema = z.object({
     title: z.string().min(5, "Title must be at least 5 characters"),
@@ -21,6 +29,8 @@ const schema = z.object({
     difficulty: z.enum(["beginner", "intermediate", "advanced", "expert"]),
     prize: z.string().min(1),
     deadlineDays: z.coerce.number().min(1).max(365),
+    dataPackUrl: z.string().url("Must be a valid URL").or(z.literal("")),
+    rubricCriteria: z.array(rubricCriterionSchema),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -31,14 +41,32 @@ export default function NewChallengePage() {
 
     const form = useForm<FormValues>({
         resolver: zodResolver(schema) as any,
-        defaultValues: { title: "", summary: "", overview: "", problemStatement: "", tags: "", difficulty: "intermediate", prize: "", deadlineDays: 30 },
+        defaultValues: {
+            title: "",
+            summary: "",
+            overview: "",
+            problemStatement: "",
+            tags: "",
+            difficulty: "intermediate",
+            prize: "",
+            deadlineDays: 30,
+            dataPackUrl: "",
+            rubricCriteria: [],
+        },
+    })
+
+    const { fields, append, remove } = useFieldArray({
+        control: form.control,
+        name: "rubricCriteria",
     })
 
     async function onSubmit(values: FormValues) {
         try {
             const tags = values.tags.split(",").map((t) => t.trim()).filter(Boolean)
             const deadline = Date.now() + values.deadlineDays * 24 * 60 * 60 * 1000
-            await createChallenge({ ...values, deadline, tags })
+            const rubricCriteria = values.rubricCriteria.length > 0 ? values.rubricCriteria : undefined
+            const dataPackUrl = values.dataPackUrl || undefined
+            await createChallenge({ ...values, deadline, tags, rubricCriteria, dataPackUrl })
             toast.success("Challenge created!")
             router.push("/sponsor")
         } catch (err) {
@@ -85,9 +113,81 @@ export default function NewChallengePage() {
                     <FormField control={form.control} name="prize" render={({ field }) => (
                         <FormItem><FormLabel>Prize</FormLabel><FormControl><Input placeholder="$2,000 + Badge" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
+                    <FormField control={form.control} name="dataPackUrl" render={({ field }) => (
+                        <FormItem><FormLabel>Data Pack URL (optional)</FormLabel><FormControl><Input placeholder="https://example.com/data-pack.zip" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
                     <FormField control={form.control} name="tags" render={({ field }) => (
                         <FormItem><FormLabel>Tags (comma-separated)</FormLabel><FormControl><Input placeholder="AI, developer-tools, LLM" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
+
+                    {/* Rubric Builder */}
+                    <div className="space-y-3 pt-2">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="font-display text-lg font-semibold">Custom Rubric Criteria</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Define how submissions will be scored. Leave empty to use the default rubric.
+                                </p>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => append({ name: "", maxScore: 20, description: "" })}
+                            >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add Criterion
+                            </Button>
+                        </div>
+
+                        {fields.length === 0 && (
+                            <p className="text-sm text-muted-foreground italic">
+                                No custom criteria defined. The default 5-criterion rubric (Technical Implementation, Problem Understanding, Innovation, Documentation, Completeness) will be used.
+                            </p>
+                        )}
+
+                        {fields.map((field, index) => (
+                            <Card key={field.id}>
+                                <CardContent className="pt-4 space-y-3">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="grid grid-cols-[1fr_100px] gap-3 flex-1">
+                                            <FormField control={form.control} name={`rubricCriteria.${index}.name`} render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Criterion Name</FormLabel>
+                                                    <FormControl><Input placeholder="e.g. Technical Implementation" {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={form.control} name={`rubricCriteria.${index}.maxScore`} render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Max Score</FormLabel>
+                                                    <FormControl><Input type="number" placeholder="20" {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="mt-6 text-destructive hover:text-destructive"
+                                            onClick={() => remove(index)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <FormField control={form.control} name={`rubricCriteria.${index}.description`} render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Description</FormLabel>
+                                            <FormControl><Textarea rows={2} placeholder="What should the judge look for?" {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+
                     <Button type="submit" className="w-full">Create Challenge</Button>
                 </form>
             </Form>
