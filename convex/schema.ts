@@ -16,6 +16,12 @@ export default defineSchema({
         points: v.number(),
         githubUsername: v.optional(v.string()),
         githubConnectedAt: v.optional(v.number()),
+        portfolioUrl: v.optional(v.string()),
+        resumeStorageId: v.optional(v.id("_storage")),
+        bio: v.optional(v.string()),
+        skills: v.optional(v.array(v.string())),
+        linkedinUrl: v.optional(v.string()),
+        twitterUrl: v.optional(v.string()),
     })
         .index("by_clerk_id", ["clerkId"])
         .index("by_email", ["email"]),
@@ -100,6 +106,10 @@ export default defineSchema({
         provisionalScore: v.optional(v.number()),
         aiRubricFeedback: v.optional(v.string()),    // JSON string: per-criterion breakdown
         aiScoredAt: v.optional(v.number()),
+
+        // Revision tracking
+        version: v.optional(v.number()),
+        previousSubmissionId: v.optional(v.id("submissions")),
 
         // Judge override (human review)
         score: v.optional(v.number()),
