@@ -95,8 +95,16 @@ export function SubmissionForm({ challengeId }: { challengeId: Id<"challenges"> 
                 description: "Our AI is scoring your submission. You'll be notified when judged.",
             })
             router.push("/dashboard")
-        } catch (err) {
-            toast.error(`Submission failed: ${String(err)}`)
+        } catch (error) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "Failed to submit. Please try again.";
+            const convexMessage =
+                typeof (error as any)?.data === "string"
+                    ? (error as any).data
+                    : message;
+            toast.error(convexMessage);
         } finally {
             setIsSubmitting(false)
         }
