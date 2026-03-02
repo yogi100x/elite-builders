@@ -50,6 +50,15 @@ export const create = mutation({
             scoringStatus: "pending",
         });
 
+        // Notify candidate that submission was received
+        await ctx.db.insert("notifications", {
+            userId: caller._id,
+            type: "submission",
+            content: `Your submission to "${challenge.title}" was received and is being scored by AI.`,
+            read: false,
+            relatedId: submissionId.toString(),
+        });
+
         // Schedule AI rubric evaluation (non-blocking)
         await ctx.scheduler.runAfter(0, internal.aiScoring.scoreSubmission, { submissionId });
 

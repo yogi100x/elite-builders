@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { requireAuth } from "./lib/auth";
 
@@ -37,5 +37,23 @@ export const countUnread = query({
             .withIndex("by_user_unread", (q) => q.eq("userId", user._id).eq("read", false))
             .collect()
         return unread.length
+    },
+});
+
+export const createInternal = internalMutation({
+    args: {
+        userId: v.id("users"),
+        type: v.union(v.literal("submission"), v.literal("award"), v.literal("not-selected")),
+        content: v.string(),
+        relatedId: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        await ctx.db.insert("notifications", {
+            userId: args.userId,
+            type: args.type,
+            content: args.content,
+            read: false,
+            relatedId: args.relatedId,
+        });
     },
 });
