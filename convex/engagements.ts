@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireAuth } from "./lib/auth";
+import { internal } from "./_generated/api";
 
 export const expressInterest = mutation({
     args: {
@@ -51,6 +52,13 @@ export const expressInterest = mutation({
             content: `${sponsor.orgName} is interested in your submission! They said: "${args.message}"`,
             read: false,
             relatedId: engagementId,
+        });
+
+        // Send sponsor interest email
+        await ctx.scheduler.runAfter(0, internal.email.sendSponsorInterest, {
+            userId: submission.userId,
+            sponsorOrgName: sponsor.orgName,
+            message: args.message,
         });
 
         return engagementId;
