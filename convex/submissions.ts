@@ -310,7 +310,9 @@ export const reject = mutation({
 export const generateUploadUrl = mutation({
     args: {},
     handler: async (ctx) => {
-        await requireAuth(ctx);
+        // Only require JWT identity — don't need the user record (webhook may be delayed)
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new ConvexError("Not authenticated");
         return ctx.storage.generateUploadUrl();
     },
 });

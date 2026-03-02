@@ -181,7 +181,29 @@ export const updateProfile = mutation({
         twitterUrl: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
-        const caller = await requireAuth(ctx);
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new ConvexError("Not authenticated");
+
+        // Find or create user record (handles webhook race condition)
+        let user = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+            .unique();
+
+        if (!user) {
+            // Webhook hasn't fired yet — create the user record now
+            const userId = await ctx.db.insert("users", {
+                clerkId: identity.subject,
+                email: identity.email ?? "",
+                name: identity.name ?? "",
+                profileImageUrl: identity.pictureUrl ?? "",
+                role: "candidate",
+                points: 0,
+            });
+            user = await ctx.db.get(userId);
+            if (!user) throw new ConvexError("Failed to create user");
+        }
+
         const updates: Record<string, unknown> = {};
 
         if (args.bio !== undefined) updates.bio = args.bio;
@@ -190,7 +212,7 @@ export const updateProfile = mutation({
         if (args.linkedinUrl !== undefined) updates.linkedinUrl = args.linkedinUrl;
         if (args.twitterUrl !== undefined) updates.twitterUrl = args.twitterUrl;
 
-        await ctx.db.patch(caller._id, updates);
+        await ctx.db.patch(user._id, updates);
     },
 });
 
@@ -258,12 +280,12 @@ export const triggerProfileAnalysis = action({
     args: {},
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity()
-        if (!identity) throw new ConvexError("Not authenticated")
+        if (!identity) return // Auth not ready yet
 
         const user: any = await ctx.runQuery(internal.users.getByClerkId, {
             clerkId: identity.subject,
         })
-        if (!user) throw new ConvexError("User not found")
+        if (!user) return // Webhook hasn't synced user yet — will retry on next visit
 
         // Schedule analysis in background — don't block the user
         await ctx.scheduler.runAfter(0, internal.github.analyzeUserProfile, {

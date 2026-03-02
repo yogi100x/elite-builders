@@ -5,10 +5,16 @@ import { requireAuth } from "./lib/auth";
 export const listByUser = query({
     args: {},
     handler: async (ctx) => {
-        const caller = await requireAuth(ctx);
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return [];
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+            .unique();
+        if (!user) return [];
         return ctx.db
             .query("notifications")
-            .withIndex("by_user", (q) => q.eq("userId", caller._id))
+            .withIndex("by_user", (q) => q.eq("userId", user._id))
             .order("desc")
             .take(20);
     },
