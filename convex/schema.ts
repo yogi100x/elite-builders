@@ -31,6 +31,8 @@ export default defineSchema({
                 weeklyDigest: v.boolean(),
             }),
         ),
+        githubProfile: v.optional(v.string()),          // JSON: Gemini-generated skill profile
+        githubProfileAnalyzedAt: v.optional(v.number()), // timestamp of last analysis
     })
         .index("by_clerk_id", ["clerkId"])
         .index("by_email", ["email"]),
@@ -206,4 +208,10 @@ export default defineSchema({
         .index("by_sponsor", ["sponsorId"])
         .index("by_candidate", ["candidateId"])
         .index("by_submission", ["submissionId"]),
+
+    recommendationCache: defineTable({
+        userId: v.id("users"),
+        recommendations: v.string(), // JSON: array of { challengeId, matchScore, reason }
+        generatedAt: v.number(),
+    }).index("by_user", ["userId"]),
 });
