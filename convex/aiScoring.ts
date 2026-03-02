@@ -217,6 +217,13 @@ ${buildExpectedJsonSection(rubricCriteria)}
                 relatedId: submissionId.toString(),
             })
 
+            // Send scoring email
+            await ctx.scheduler.runAfter(0, internal.email.sendScoring, {
+                userId: submission.userId,
+                challengeTitle: challenge.title,
+                provisionalScore: overallScore,
+            })
+
             // Optionally run sandbox tests if repo has a test script
             if (submission.githubOwner && submission.githubRepo) {
                 try {

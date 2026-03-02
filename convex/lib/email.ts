@@ -88,3 +88,42 @@ export async function sendRejectionEmail(to: string, name: string, feedback: str
     `;
     await sendEmail(to, "Your EliteBuilders submission has been reviewed", emailTemplate("Submission Review", body));
 }
+
+export async function sendSponsorInterestEmail(
+    to: string,
+    candidateName: string,
+    sponsorOrgName: string,
+    message: string,
+): Promise<void> {
+    const body = `
+        <p style="color: #374151;">Hi ${candidateName},</p>
+        <p style="color: #374151;">Great news! <strong>${sponsorOrgName}</strong> is interested in your submission.</p>
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 16px 0;">
+            <p style="margin: 0; font-size: 14px; color: #1e40af;">
+                <strong>Their message:</strong> "${message}"
+            </p>
+        </div>
+        <p style="color: #374151;">Log in to your dashboard to respond.</p>
+    `;
+    await sendEmail(to, `${sponsorOrgName} is interested in your work!`, emailTemplate("Sponsor Interest", body));
+}
+
+export async function sendScoringEmail(
+    to: string,
+    name: string,
+    challengeTitle: string,
+    provisionalScore: number,
+): Promise<void> {
+    const body = `
+        <p style="color: #374151;">Hi ${name},</p>
+        <p style="color: #374151;">Your submission for <strong>${challengeTitle}</strong> has been automatically scored.</p>
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 16px 0;">
+            <p style="margin: 0; font-size: 14px; color: #1e40af;">
+                <strong>Provisional AI Score:</strong> ${provisionalScore}/100
+            </p>
+        </div>
+        <p style="color: #374151;">A human judge will review your submission next. You'll be notified when the final review is complete.</p>
+        <p style="color: #374151;">Keep building!</p>
+    `;
+    await sendEmail(to, `AI Score Ready: ${provisionalScore}/100 — ${challengeTitle}`, emailTemplate("AI Scoring Complete", body));
+}
