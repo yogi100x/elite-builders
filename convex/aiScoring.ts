@@ -4,12 +4,26 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 import { api, internal } from "./_generated/api"
 
 const RUBRIC_SCORING_SYSTEM_PROMPT = `You are an expert technical judge evaluating AI/software competition submissions.
-Score each rubric criterion from 0-100 and provide specific, actionable feedback.
+Score each rubric criterion and provide specific, actionable feedback.
 Return ONLY valid JSON — no markdown, no prose outside the JSON object.`
+
+const DEFAULT_RUBRIC_CRITERIA = [
+    { name: "Technical Implementation", maxScore: 40, description: "Quality of code, architecture, use of AI/ML techniques" },
+    { name: "Problem Understanding", maxScore: 20, description: "How well the submission addresses the stated problem" },
+    { name: "Innovation", maxScore: 20, description: "Creative use of AI, novel approach, differentiated solution" },
+    { name: "Documentation & Clarity", maxScore: 10, description: "README quality, pitch clarity, demo explanation" },
+    { name: "Completeness", maxScore: 10, description: "End-to-end functionality, working demo" },
+]
+
+interface RubricCriterion {
+    name: string
+    maxScore: number
+    description: string
+}
 
 interface RubricScore {
     criterion: string
-    score: number       // 0-100
+    score: number
     maxScore: number
     feedback: string
 }
@@ -20,6 +34,27 @@ interface AIScoringResult {
     strengths: string[]
     improvements: string[]
     summary: string
+}
+
+function buildRubricPromptSection(criteria: RubricCriterion[]): string {
+    return criteria
+        .map((c, i) => `${i + 1}. ${c.name} (${c.maxScore} pts): ${c.description}`)
+        .join("\n")
+}
+
+function buildExpectedJsonSection(criteria: RubricCriterion[]): string {
+    const rubricEntries = criteria
+        .map((c) => `    { "criterion": "${c.name}", "score": <0-${c.maxScore}>, "maxScore": ${c.maxScore}, "feedback": "<specific feedback>" }`)
+        .join(",\n")
+    return `{
+  "overallScore": <0-100 number>,
+  "rubricScores": [
+${rubricEntries}
+  ],
+  "strengths": ["<strength 1>", "<strength 2>"],
+  "improvements": ["<improvement 1>", "<improvement 2>"],
+  "summary": "<2-3 sentence overall assessment>"
+}`
 }
 
 /**
@@ -74,18 +109,20 @@ export const scoreSubmission = internalAction({
             const fallbackModel = process.env.GEMINI_FALLBACK_MODEL ?? "gemini-2.5-flash"
             const model = genAI.getGenerativeModel({ model: scoringModel })
 
+            // Build rubric dynamically from challenge or fall back to default
+            const rubricCriteria: RubricCriterion[] = challenge.rubricCriteria && challenge.rubricCriteria.length > 0
+                ? challenge.rubricCriteria
+                : DEFAULT_RUBRIC_CRITERIA
+            const totalPoints = rubricCriteria.reduce((sum, c) => sum + c.maxScore, 0)
+
             const prompt = `
 Challenge: ${challenge.title}
 
 Problem Statement:
 ${challenge.problemStatement}
 
-Evaluation Rubric (score each 0-100):
-1. Technical Implementation (40 pts): Quality of code, architecture, use of AI/ML techniques
-2. Problem Understanding (20 pts): How well the submission addresses the stated problem
-3. Innovation (20 pts): Creative use of AI, novel approach, differentiated solution
-4. Documentation & Clarity (10 pts): README quality, pitch clarity, demo explanation
-5. Completeness (10 pts): End-to-end functionality, working demo
+Evaluation Rubric (total ${totalPoints} pts — score each criterion from 0 up to its max):
+${buildRubricPromptSection(rubricCriteria)}
 
 Candidate Submission:
 - Repo: ${submission.githubRepoUrl ?? submission.repoUrl ?? "not provided"}
@@ -97,19 +134,7 @@ README Content (first 2000 chars):
 ${readmeContent.slice(0, 2000)}
 
 Return JSON in this exact format:
-{
-  "overallScore": <0-100 number>,
-  "rubricScores": [
-    { "criterion": "Technical Implementation", "score": <0-40>, "maxScore": 40, "feedback": "<specific feedback>" },
-    { "criterion": "Problem Understanding", "score": <0-20>, "maxScore": 20, "feedback": "<specific feedback>" },
-    { "criterion": "Innovation", "score": <0-20>, "maxScore": 20, "feedback": "<specific feedback>" },
-    { "criterion": "Documentation & Clarity", "score": <0-10>, "maxScore": 10, "feedback": "<specific feedback>" },
-    { "criterion": "Completeness", "score": <0-10>, "maxScore": 10, "feedback": "<specific feedback>" }
-  ],
-  "strengths": ["<strength 1>", "<strength 2>"],
-  "improvements": ["<improvement 1>", "<improvement 2>"],
-  "summary": "<2-3 sentence overall assessment>"
-}
+${buildExpectedJsonSection(rubricCriteria)}
 `
 
             let result
