@@ -19,6 +19,18 @@ export const create = mutation({
     },
     handler: async (ctx, args) => {
         const caller = await requireAuth(ctx);
+
+        const challenge = await ctx.db.get(args.challengeId);
+        if (!challenge) {
+            throw new ConvexError("Challenge not found");
+        }
+        if (challenge.status === "closed") {
+            throw new ConvexError("This challenge is closed and no longer accepting submissions");
+        }
+        if (challenge.deadline < Date.now()) {
+            throw new ConvexError("The deadline for this challenge has passed");
+        }
+
         const submissionId = await ctx.db.insert("submissions", {
             ...args,
             userId: caller._id,
