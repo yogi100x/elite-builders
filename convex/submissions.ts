@@ -31,6 +31,18 @@ export const create = mutation({
             throw new ConvexError("The deadline for this challenge has passed");
         }
 
+        const existingSubmission = await ctx.db
+            .query("submissions")
+            .withIndex("by_challenge_user", (q) =>
+                q.eq("challengeId", args.challengeId).eq("userId", caller._id),
+            )
+            .first();
+        if (existingSubmission) {
+            throw new ConvexError(
+                "You have already submitted to this challenge. Revision support is coming soon.",
+            );
+        }
+
         const submissionId = await ctx.db.insert("submissions", {
             ...args,
             userId: caller._id,
